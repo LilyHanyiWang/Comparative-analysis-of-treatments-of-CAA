@@ -1,0 +1,35 @@
+---
+title: "preprocessing"
+author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
+date: "2022-10-26"
+output: html_document
+---
+
+```{r library, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+Set up working directory and read in data accordingly.
+
+```{r setup wd}
+## ------------- working directories for Lily ----------
+wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+path_lily = c(
+  "../data/TEVAR_International_20210712/TEVAR_International_LTF_r12_2_14_20210701.csv",
+  "../data/TEVAR_International_20210712/TEVAR_International_PROC_r12_2_14_20210701.csv",
+  "../data/TEVAR_International_20210901/TEVAR_International_LTF_r12_2_14_20210901.csv",
+  "../data/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv")
+
+
+## ------------- read data ----------
+setwd(wd_lily)
+TEVAR_LTF_07 = read.csv(path_lily[1])
+TEVAR_PROC_07 = read.csv(path_lily[2])
+TEVAR_LTF_09 = read.csv(path_lily[3])
+TEVAR_PROC_09 = read.csv(path_lily[4])
+```
+
+
+
+
