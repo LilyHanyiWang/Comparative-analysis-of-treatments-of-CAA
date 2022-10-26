@@ -2,7 +2,7 @@
 title: "preprocessing"
 author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
 date: "2022-10-26"
-output: html_document
+output: pdf_document
 ---
 
 ```{r library, include=FALSE}
