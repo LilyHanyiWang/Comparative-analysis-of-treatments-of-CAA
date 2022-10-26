@@ -6,11 +6,10 @@ output: pdf_document
 ---
 
 ```{r library, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include = FALSE,echo = TRUE)
 library(tidyverse)
 ```
 
-Set up working directory and read in data accordingly.
 
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
@@ -31,5 +30,10 @@ TEVAR_PROC_09 = read.csv(path_lily[4])
 ```
 
 
+\newpage
+### Code Appendix
+
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE,include=TRUE}
+```
 
 
