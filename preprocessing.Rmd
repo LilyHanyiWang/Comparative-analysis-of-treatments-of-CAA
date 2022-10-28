@@ -6,8 +6,10 @@ output: pdf_document
 ---
 
 ```{r library, include=FALSE}
-knitr::opts_chunk$set(include = FALSE,echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
+library(table1)
+
 ```
 
 
@@ -25,9 +27,40 @@ path_lily = c(
 setwd(wd_lily)
 TEVAR_LTF_07 = read.csv(path_lily[1])
 TEVAR_PROC_07 = read.csv(path_lily[2])
-TEVAR_LTF_09 = read.csv(path_lily[3])
-TEVAR_PROC_09 = read.csv(path_lily[4])
+#TEVAR_LTF_09 = read.csv(path_lily[3])
+#TEVAR_PROC_09 = read.csv(path_lily[4])
 ```
+
+## Dataset `TEVAR_PROC_07` to start with.
+
+The population of interest in the asymptomatic and symptomatics groups. 
+
+`PRESENTATION`: 0 = Asymptomatic,1 = Symptomatic,2 = Rupture
+
+```{r}
+## ------------- data cleaning----------
+TEVAR_PROC_07 = TEVAR_PROC_07 %>%
+  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1,2),
+                               labels = c('Asymptomatic','Symptomatic','Rupture')))
+
+## ------------- population of interest ----------
+table1(~  PRESENTATION, data = TEVAR_PROC_07)
+```
+
+table for some potential outcome variables
+
+```{r}
+## ------------- descriptive statistics table for outcomes----------
+table1(~ factor(DEAD) + PROC_SURVIVALDAYS | PRESENTATION, data = TEVAR_PROC_07)
+```
+
+table for some other potential variables of interest
+```{r}
+## ------------- descriptive statistics table for variables of interest----------
+table1(~ AGE+factor(PREOP_SMOKING) | PRESENTATION, data = TEVAR_PROC_07)
+
+```
+
 
 
 \newpage
