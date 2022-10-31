@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r library, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
 library(tidyverse)
 library(table1)
 
@@ -33,35 +33,103 @@ TEVAR_PROC_07 = read.csv(path_lily[2])
 
 ## Dataset `TEVAR_PROC_07` to start with.
 
-The population of interest in the asymptomatic and symptomatics groups. 
+```{r}
+## ------------- data cleaning----------
+TEVAR_PROC_07 = TEVAR_PROC_07 %>% 
+  mutate(DEAD=factor(DEAD)) %>%
+  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1,2),
+                               labels = c('Asymptomatic','Symptomatic','Rupture'))) %>%
+  mutate(AGECAT = factor(AGECAT,levels = c(1,2,3,4,5,6,7),
+                         labels = c('<40','40-49','50-59','60-69','70-79','80-89','>89'))) %>%
+  mutate(GENDER=factor(GENDER,levels=c(1,2),
+                       labels=c('male','female')))
+
+```
+
+
+## population of interest: the asymptomatic and symptomatics groups. 
 
 `PRESENTATION`: 0 = Asymptomatic,1 = Symptomatic,2 = Rupture
 
-```{r}
-## ------------- data cleaning----------
-TEVAR_PROC_07 = TEVAR_PROC_07 %>%
-  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1,2),
-                               labels = c('Asymptomatic','Symptomatic','Rupture')))
+Is this the correct variable? 
 
+What does rupture mean? 
+
+Should we just delete data missing symptom info?
+
+```{r}
 ## ------------- population of interest ----------
 table1(~  PRESENTATION, data = TEVAR_PROC_07)
 ```
 
-table for some potential outcome variables
+## potential outcome variables
+
+Are these possible outcomes?
+
+`TOTAL_LOS`: Length of Stay in days calculated by DISCHARGE_DT - ADMIT_DT \\
+
+`POSTOP_LOS`: Length of Stay in days calculated by DISCHARGE_DT - SURGERY_DT
 
 ```{r}
 ## ------------- descriptive statistics table for outcomes----------
 table1(~ factor(DEAD) + PROC_SURVIVALDAYS | PRESENTATION, data = TEVAR_PROC_07)
 ```
 
-table for some other potential variables of interest
+## patient condition variables:
+
+`AGECAT`: 1 = <40,2 = 40-49,3 = 50-59,4 = 60-69,5 = 70-79,6 = 80-89,7 = >89
+
+`GENDER`: 1 = Male,2 = Female
+
+`PRIOR_CVD`: 0 = None,1 = hx stroke, asymptomatic,2 = hx stroke, minor deficit,3 = hx stroke, major deficit
+
+`PRIOR_CAD`: 0 = None,1 = hx MI but no sx,2 = Stable angina,3 = Unstable angina or MI < 6 mos (retired since 09/12/2012),4 = MI < 6 mos,5 = Unstable angina
+
+`PRIOR_CHF`: 0 = None,1 = Asymp, hx CHF,2 = Mild,3 = Moderate,4 = Severe
+
+`COPD`: 0 = No,1 = Not Treated,2 = On Meds,3 = On Home Oxygen
+
+`DIABETES`: 0 = None,1 = Diet,2 = Non-insulin Meds,3 = Insulin
+
+`HTN`: History of hypertension; 0 = No, 1 = Yes (>=140/90 or history) (retired since 11/15/2016), 2 = Yes, controlled  [added on 04/13/2020] , 3 = Yes, uncontrolled  [added on 04/13/2020]
+
+`PREOP_SMOKING`: 0 = Never,1 = Prior,2 = Current
+
+`PRIOR_AORSURG`: Any aortic procedures performed on a separate date prior to the index procedure; 0 = None,1 = Open,2 = Endo,3 = Both,4 = Other (retired since 09/30/2014)
+
+
+`PATHOLOGY`: 1 = Aneurysm,2 = Dissection,3 = Aneurysm from dissection,4 = Trauma,5 = Penetrating Ulcer (PAU),6 = Intramural Hematoma (IMH),7 = PAU with IMH,8 = Aortic Thrombus,9 = Other (Retired) (retired since 09/30/2014),10 = Aorto-esophageal Fistula (Retired) (retired since 09/30/2014),11 = Aorto-bronchial Fistula (Retired) (retired since 09/30/2014).
+
+*Type of TAA?*
+
+`PREOP_MAXAAADIA`: "Maximum total aortic diameter within the last 6 months (including true and false lumen in dissection) within diseased segment being treated, measured at right angle to centerline, ideally with 3-D imaging software. Min/max range: 16 to 190 mm."
+
+*surgery year?*
+
 ```{r}
-## ------------- descriptive statistics table for variables of interest----------
-table1(~ AGE+factor(PREOP_SMOKING) | PRESENTATION, data = TEVAR_PROC_07)
+## ------------- descriptive statistics table for patients conditions----------
+table1(~ GENDER+AGE+AGECAT+factor(PREOP_SMOKING)+factor(PRIOR_CVD)+factor(PRIOR_CAD)+
+         factor(PRIOR_CHF)+factor(COPD)+factor(DIABETES)+factor(HTN)+factor(PRIOR_AORSURG)
+       | PRESENTATION, data = TEVAR_PROC_07)
 
 ```
 
 
+## Medical center info:
+
+```{r}
+## ------------- descriptive statistics table for other variables of interest----------
+
+#TEVAR_PROC_07 %>% select(REGIONID) %>% table() 
+#TEVAR_PROC_07 %>% select(CENTERID) %>% table() 
+#TEVAR_PROC_07 %>% select(PHYSICIANID) %>% table() 
+```
+
+`r nlevels(factor(TEVAR_PROC_07$REGIONID))` regions, `r nlevels(factor(TEVAR_PROC_07$CENTERID))` centers, `r nlevels(factor(TEVAR_PROC_07$PHYSICIANID))` physicians. 
+
+Most physicians only performed 1 or 2 procedures. Several performed over 100 procedures? Is that real? 
+
+There are regions and centers that perfomed many procedures. Would that affect the outcome?
 
 \newpage
 ### Code Appendix
