@@ -42,7 +42,9 @@ TEVAR_PROC_07 = TEVAR_PROC_07 %>%
   mutate(AGECAT = factor(AGECAT,levels = c(1,2,3,4,5,6,7),
                          labels = c('<40','40-49','50-59','60-69','70-79','80-89','>89'))) %>%
   mutate(GENDER=factor(GENDER,levels=c(1,2),
-                       labels=c('male','female')))
+                       labels=c('male','female'))) %>%
+  mutate(SURGYEAR=factor(SURGYEAR)) %>%
+  mutate(PATHOLOGY=factor(PATHOLOGY)) 
 
 ```
 
@@ -51,28 +53,36 @@ TEVAR_PROC_07 = TEVAR_PROC_07 %>%
 
 `PRESENTATION`: 0 = Asymptomatic,1 = Symptomatic,2 = Rupture
 
-Is this the correct variable? 
+*What does rupture mean?* 
 
-What does rupture mean? 
+*Should we just delete data missing symptom info?*
 
-Should we just delete data missing symptom info?
+`PATHOLOGY`: 1 = Aneurysm,2 = Dissection,3 = Aneurysm from dissection,4 = Trauma,5 = Penetrating Ulcer (PAU),6 = Intramural Hematoma (IMH),7 = PAU with IMH,8 = Aortic Thrombus,9 = Other (Retired) (retired since 09/30/2014),10 = Aorto-esophageal Fistula (Retired) (retired since 09/30/2014),11 = Aorto-bronchial Fistula (Retired) (retired since 09/30/2014)
+
+Old variable, used to be called Indication, now mapped to Pathology. Mapping detail: 1 = TAA->1 = Aneurysm; 2 = TAAA->1 = Aneurysm; 4 = Dissection->2 =  Dissection; 3=Aneurysm from dissection; 3 = Trauma->4=Trauma; 5 = Penetrating Ulcer->5 = Penetrating Ulcer (PAU); 6 = Aortic Intramural Hematoma->6 =  Intramural Hematoma (IMH); 7=PAU with IMH; 8=Aortic Thrombus
+
+*Type of AA?*
 
 ```{r}
 ## ------------- population of interest ----------
-table1(~  PRESENTATION, data = TEVAR_PROC_07)
+table1(~  PATHOLOGY+PRESENTATION, data = TEVAR_PROC_07)
 ```
+
 
 ## potential outcome variables
 
-Are these possible outcomes?
+`PROC_SURVIVALDAYS`: This should be the longest known time of survival data available for the patient. 
+Survival days are calculated as the Last Date of Contact (or Date of Death) for the patient - Procedure date for a procedure. Please refer to included Death and Survival Days Logic.pdf for additional details."
 
-`TOTAL_LOS`: Length of Stay in days calculated by DISCHARGE_DT - ADMIT_DT \\
+*survival analysis*
 
 `POSTOP_LOS`: Length of Stay in days calculated by DISCHARGE_DT - SURGERY_DT
 
+*endoleak what does that mean*
+
 ```{r}
 ## ------------- descriptive statistics table for outcomes----------
-table1(~ factor(DEAD) + PROC_SURVIVALDAYS | PRESENTATION, data = TEVAR_PROC_07)
+table1(~ factor(DEAD) + PROC_SURVIVALDAYS+POSTOP_LOS | PRESENTATION, data = TEVAR_PROC_07)
 ```
 
 ## patient condition variables:
@@ -97,23 +107,24 @@ table1(~ factor(DEAD) + PROC_SURVIVALDAYS | PRESENTATION, data = TEVAR_PROC_07)
 
 `PRIOR_AORSURG`: Any aortic procedures performed on a separate date prior to the index procedure; 0 = None,1 = Open,2 = Endo,3 = Both,4 = Other (retired since 09/30/2014)
 
-
-`PATHOLOGY`: 1 = Aneurysm,2 = Dissection,3 = Aneurysm from dissection,4 = Trauma,5 = Penetrating Ulcer (PAU),6 = Intramural Hematoma (IMH),7 = PAU with IMH,8 = Aortic Thrombus,9 = Other (Retired) (retired since 09/30/2014),10 = Aorto-esophageal Fistula (Retired) (retired since 09/30/2014),11 = Aorto-bronchial Fistula (Retired) (retired since 09/30/2014).
-
-*Type of TAA?*
-
-`PREOP_MAXAAADIA`: "Maximum total aortic diameter within the last 6 months (including true and false lumen in dissection) within diseased segment being treated, measured at right angle to centerline, ideally with 3-D imaging software. Min/max range: 16 to 190 mm."
-
-*surgery year?*
-
 ```{r}
 ## ------------- descriptive statistics table for patients conditions----------
 table1(~ GENDER+AGE+AGECAT+factor(PREOP_SMOKING)+factor(PRIOR_CVD)+factor(PRIOR_CAD)+
          factor(PRIOR_CHF)+factor(COPD)+factor(DIABETES)+factor(HTN)+factor(PRIOR_AORSURG)
        | PRESENTATION, data = TEVAR_PROC_07)
 
+
 ```
 
+## other variables?
+
+*would surgery year affect? eg.progression of surgery?*
+
+increasing number of surgeries done. decreasing death rate.
+
+```{r}
+plot(DEAD~SURGYEAR,data=TEVAR_PROC_07)
+```
 
 ## Medical center info:
 
