@@ -31,7 +31,15 @@ TEVAR_PROC_07 = read.csv(path_lily[2])
 #TEVAR_PROC_09 = read.csv(path_lily[4])
 ```
 
-## Dataset `TEVAR_PROC_07` to start with.
+## merge the datasets
+
+## data cleaning based on inclusion, exclusion criteria
+
+Exclusion criteria:
+
+- exclude rupture groups.
+
+- exclude pathology groups
 
 ```{r}
 ## ------------- data cleaning----------
@@ -46,6 +54,8 @@ TEVAR_PROC_07 = TEVAR_PROC_07 %>%
   mutate(SURGYEAR=factor(SURGYEAR)) %>%
   mutate(PATHOLOGY=factor(PATHOLOGY)) 
 
+## ------------- inclusion and exclusion----------
+
 ```
 
 
@@ -53,43 +63,33 @@ TEVAR_PROC_07 = TEVAR_PROC_07 %>%
 
 `PRESENTATION`: 0 = Asymptomatic,1 = Symptomatic,2 = Rupture
 
-*What does rupture mean?* 
-
-*Should we just delete data missing symptom info?*
-
-`PATHOLOGY`: 1 = Aneurysm,2 = Dissection,3 = Aneurysm from dissection,4 = Trauma,5 = Penetrating Ulcer (PAU),6 = Intramural Hematoma (IMH),7 = PAU with IMH,8 = Aortic Thrombus,9 = Other (Retired) (retired since 09/30/2014),10 = Aorto-esophageal Fistula (Retired) (retired since 09/30/2014),11 = Aorto-bronchial Fistula (Retired) (retired since 09/30/2014)
-
-Old variable, used to be called Indication, now mapped to Pathology. Mapping detail: 1 = TAA->1 = Aneurysm; 2 = TAAA->1 = Aneurysm; 4 = Dissection->2 =  Dissection; 3=Aneurysm from dissection; 3 = Trauma->4=Trauma; 5 = Penetrating Ulcer->5 = Penetrating Ulcer (PAU); 6 = Aortic Intramural Hematoma->6 =  Intramural Hematoma (IMH); 7=PAU with IMH; 8=Aortic Thrombus
-
-*Type of AA?*
 
 ```{r}
 ## ------------- population of interest ----------
-table1(~  PATHOLOGY+PRESENTATION, data = TEVAR_PROC_07)
+table1(~  PRESENTATION, data = TEVAR_PROC_07)
 ```
 
 
-## potential outcome variables
 
-`PROC_SURVIVALDAYS`: This should be the longest known time of survival data available for the patient. 
-Survival days are calculated as the Last Date of Contact (or Date of Death) for the patient - Procedure date for a procedure. Please refer to included Death and Survival Days Logic.pdf for additional details."
+## Demographic history
 
-*survival analysis*
-
-`POSTOP_LOS`: Length of Stay in days calculated by DISCHARGE_DT - SURGERY_DT
-
-*endoleak what does that mean*
-
-```{r}
-## ------------- descriptive statistics table for outcomes----------
-table1(~ factor(DEAD) + PROC_SURVIVALDAYS+POSTOP_LOS | PRESENTATION, data = TEVAR_PROC_07)
-```
-
-## patient condition variables:
+GENDER, BMI(USING HEIGHT AND WEIGHT)?, R_PREOP_AMBUL(Preop ambulatory status), AGE (Patient age at procedure), AGECAT, PATHOLOGY (exclude 4, 8-11) 
 
 `AGECAT`: 1 = <40,2 = 40-49,3 = 50-59,4 = 60-69,5 = 70-79,6 = 80-89,7 = >89
 
 `GENDER`: 1 = Male,2 = Female
+
+```{r}
+## ------------- table1: demographic----------
+table1(~ GENDER+AGE+AGECAT
+         | PRESENTATION, data = TEVAR_PROC_07)
+```
+
+## patient condition variables:
+
+`PATHOLOGY`: 1 = Aneurysm,2 = Dissection,3 = Aneurysm from dissection,4 = Trauma,5 = Penetrating Ulcer (PAU),6 = Intramural Hematoma (IMH),7 = PAU with IMH,8 = Aortic Thrombus,9 = Other (Retired) (retired since 09/30/2014),10 = Aorto-esophageal Fistula (Retired) (retired since 09/30/2014),11 = Aorto-bronchial Fistula (Retired) (retired since 09/30/2014)
+
+Old variable, used to be called Indication, now mapped to Pathology. Mapping detail: 1 = TAA->1 = Aneurysm; 2 = TAAA->1 = Aneurysm; 4 = Dissection->2 =  Dissection; 3=Aneurysm from dissection; 3 = Trauma->4=Trauma; 5 = Penetrating Ulcer->5 = Penetrating Ulcer (PAU); 6 = Aortic Intramural Hematoma->6 =  Intramural Hematoma (IMH); 7=PAU with IMH; 8=Aortic Thrombus
 
 `PRIOR_CVD`: 0 = None,1 = hx stroke, asymptomatic,2 = hx stroke, minor deficit,3 = hx stroke, major deficit
 
@@ -108,28 +108,45 @@ table1(~ factor(DEAD) + PROC_SURVIVALDAYS+POSTOP_LOS | PRESENTATION, data = TEVA
 `PRIOR_AORSURG`: Any aortic procedures performed on a separate date prior to the index procedure; 0 = None,1 = Open,2 = Endo,3 = Both,4 = Other (retired since 09/30/2014)
 
 ```{r}
-## ------------- descriptive statistics table for patients conditions----------
-table1(~ GENDER+AGE+AGECAT+factor(PREOP_SMOKING)+factor(PRIOR_CVD)+factor(PRIOR_CAD)+
-         factor(PRIOR_CHF)+factor(COPD)+factor(DIABETES)+factor(HTN)+factor(PRIOR_AORSURG)
+## ------------- table2: anatomy ----------
+table1(~ factor(PATHOLOGY)+
+         factor(R_PREOP_AMBUL)+factor(PREOP_SMOKING)+factor(PRIOR_CVD)+
+         factor(PRIOR_CAD)+factor(PRIOR_CHF)+factor(COPD)+factor(DIABETES)+factor(HTN)+
+         factor(PRIOR_AORSURG)
        | PRESENTATION, data = TEVAR_PROC_07)
 
 
 ```
 
-## other variables?
+## other variables
 
-*would surgery year affect? eg.progression of surgery?*
-
-increasing number of surgeries done. decreasing death rate.
+Surgery year would affect outcome, since surgeons got more familiar with the surgery.
 
 ```{r}
 plot(DEAD~SURGYEAR,data=TEVAR_PROC_07)
 ```
 
-## Medical center info:
+
+## Outcome variables
+
+`PROC_SURVIVALDAYS`: This should be the longest known time of survival data available for the patient. 
+Survival days are calculated as the Last Date of Contact (or Date of Death) for the patient - Procedure date for a procedure. Please refer to included Death and Survival Days Logic.pdf for additional details."
+
+`POSTOP_LOS`: Length of Stay in days calculated by DISCHARGE_DT - SURGERY_DT
+
 
 ```{r}
-## ------------- descriptive statistics table for other variables of interest----------
+## ------------- table3: outcomes----------
+table1(~ factor(DEAD) + PROC_SURVIVALDAYS+POSTOP_LOS | PRESENTATION, data = TEVAR_PROC_07)
+
+## ------------- Survival curves----------
+
+```
+
+## Clustering variables:
+
+```{r}
+## ------------- clustering variables----------
 
 #TEVAR_PROC_07 %>% select(REGIONID) %>% table() 
 #TEVAR_PROC_07 %>% select(CENTERID) %>% table() 
@@ -138,9 +155,9 @@ plot(DEAD~SURGYEAR,data=TEVAR_PROC_07)
 
 `r nlevels(factor(TEVAR_PROC_07$REGIONID))` regions, `r nlevels(factor(TEVAR_PROC_07$CENTERID))` centers, `r nlevels(factor(TEVAR_PROC_07$PHYSICIANID))` physicians. 
 
-Most physicians only performed 1 or 2 procedures. Several performed over 100 procedures? Is that real? 
+Most physicians only performed 1 or 2 procedures. Several performed over 100 procedures. Since the more surgeries a surgeon did, the more familiar he or she is. So we need to cluster on this.
 
-There are regions and centers that perfomed many procedures. Would that affect the outcome?
+*Cluster on centers and physicians*
 
 \newpage
 ### Code Appendix
