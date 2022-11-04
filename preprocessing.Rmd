@@ -1,7 +1,6 @@
 ---
 title: "preprocessing"
 author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
-date: "2022-10-26"
 output: pdf_document
 ---
 
@@ -33,36 +32,57 @@ TEVAR_PROC_07 = read.csv(path_lily[2])
 
 ## merge the datasets
 
+Compare the data from July 2021 and September 2021. Keep the most updated ones.
+
+Merge the long term follow-up dataset and the pre-procedure dataset by `PATIENTID`.
+
+```{r}
+## ------------- merge the data----------
+
+```
+
 ## data cleaning based on inclusion, exclusion criteria
 
 Exclusion criteria:
 
-- exclude rupture groups.
+- `PRESENTATION` exclude rupture patients
 
-- exclude pathology groups
+- `PATHOLOGY` exclude groups with pathology: 4=trauma, 8 = Aortic Thrombus,9 = Other (Retired) (retired since 09/30/2014),10 = Aorto-esophageal Fistula (Retired) (retired since 09/30/2014),11 = Aorto-bronchial Fistula (Retired) (retired since 09/30/2014)
+
+*include the indication, merge the two columns*
+
+- `URGENCY`: exclude rupture. (elective is same to asymptomatic)
+
+- `PROXZONE_DISEASE`: exclude 0 and 1 
 
 ```{r}
+## ------------- inclusion and exclusion----------
+TEVAR_PROC_07 = TEVAR_PROC_07 %>% 
+  filter(PRESENTATION !=2) %>%
+  filter(PATHOLOGY %in% c(1,2,3,5,6,7)) %>%
+  filter(URGENCY %in% c(1,2,3)) %>%
+  filter(PROXZONE_DISEASE %in% c(2,3,4,5,6,7,8,9))
+
 ## ------------- data cleaning----------
 TEVAR_PROC_07 = TEVAR_PROC_07 %>% 
   mutate(DEAD=factor(DEAD)) %>%
-  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1,2),
-                               labels = c('Asymptomatic','Symptomatic','Rupture'))) %>%
+  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
+                               labels = c('Asymptomatic','Symptomatic'))) %>%
   mutate(AGECAT = factor(AGECAT,levels = c(1,2,3,4,5,6,7),
                          labels = c('<40','40-49','50-59','60-69','70-79','80-89','>89'))) %>%
   mutate(GENDER=factor(GENDER,levels=c(1,2),
                        labels=c('male','female'))) %>%
   mutate(SURGYEAR=factor(SURGYEAR)) %>%
-  mutate(PATHOLOGY=factor(PATHOLOGY)) 
-
-## ------------- inclusion and exclusion----------
+  mutate(PROXZONE_DISEASE=factor(PROXZONE_DISEASE)) %>%
+  mutate(URGENCY=factor(URGENCY,levels = c(1,2,3),labels = c('Elective','Urgent','Emergent'))) %>%
+  mutate(PATHOLOGY=factor(PATHOLOGY,levels=c(1,2,3,5,6,7),
+                          labels = c('Aneurysm','Dissection','Aneurysm from dissection','PAU',
+                                     'IMH','PAU with IMH')))
 
 ```
 
 
 ## population of interest: the asymptomatic and symptomatics groups. 
-
-`PRESENTATION`: 0 = Asymptomatic,1 = Symptomatic,2 = Rupture
-
 
 ```{r}
 ## ------------- population of interest ----------
@@ -73,23 +93,21 @@ table1(~  PRESENTATION, data = TEVAR_PROC_07)
 
 ## Demographic history
 
-GENDER, BMI(USING HEIGHT AND WEIGHT)?, R_PREOP_AMBUL(Preop ambulatory status), AGE (Patient age at procedure), AGECAT, PATHOLOGY (exclude 4, 8-11) 
-
-`AGECAT`: 1 = <40,2 = 40-49,3 = 50-59,4 = 60-69,5 = 70-79,6 = 80-89,7 = >89
-
-`GENDER`: 1 = Male,2 = Female
-
 ```{r}
 ## ------------- table1: demographic----------
 table1(~ GENDER+AGE+AGECAT
          | PRESENTATION, data = TEVAR_PROC_07)
 ```
 
+## anatomy
+
+```{r}
+## ------------- table: anatomy ----------
+table1(~ PATHOLOGY+PROXZONE_DISEASE | PRESENTATION, data = TEVAR_PROC_07)
+```
+
+
 ## patient condition variables:
-
-`PATHOLOGY`: 1 = Aneurysm,2 = Dissection,3 = Aneurysm from dissection,4 = Trauma,5 = Penetrating Ulcer (PAU),6 = Intramural Hematoma (IMH),7 = PAU with IMH,8 = Aortic Thrombus,9 = Other (Retired) (retired since 09/30/2014),10 = Aorto-esophageal Fistula (Retired) (retired since 09/30/2014),11 = Aorto-bronchial Fistula (Retired) (retired since 09/30/2014)
-
-Old variable, used to be called Indication, now mapped to Pathology. Mapping detail: 1 = TAA->1 = Aneurysm; 2 = TAAA->1 = Aneurysm; 4 = Dissection->2 =  Dissection; 3=Aneurysm from dissection; 3 = Trauma->4=Trauma; 5 = Penetrating Ulcer->5 = Penetrating Ulcer (PAU); 6 = Aortic Intramural Hematoma->6 =  Intramural Hematoma (IMH); 7=PAU with IMH; 8=Aortic Thrombus
 
 `PRIOR_CVD`: 0 = None,1 = hx stroke, asymptomatic,2 = hx stroke, minor deficit,3 = hx stroke, major deficit
 
@@ -108,13 +126,11 @@ Old variable, used to be called Indication, now mapped to Pathology. Mapping det
 `PRIOR_AORSURG`: Any aortic procedures performed on a separate date prior to the index procedure; 0 = None,1 = Open,2 = Endo,3 = Both,4 = Other (retired since 09/30/2014)
 
 ```{r}
-## ------------- table2: anatomy ----------
-table1(~ factor(PATHOLOGY)+
-         factor(R_PREOP_AMBUL)+factor(PREOP_SMOKING)+factor(PRIOR_CVD)+
+## ------------- table: patients conditions ----------
+table1(~ factor(R_PREOP_AMBUL)+factor(PREOP_SMOKING)+factor(PRIOR_CVD)+
          factor(PRIOR_CAD)+factor(PRIOR_CHF)+factor(COPD)+factor(DIABETES)+factor(HTN)+
          factor(PRIOR_AORSURG)
        | PRESENTATION, data = TEVAR_PROC_07)
-
 
 ```
 
