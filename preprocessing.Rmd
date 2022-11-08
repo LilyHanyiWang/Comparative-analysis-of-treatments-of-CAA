@@ -22,7 +22,7 @@ path_lily = c(
   "../data/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv")
 
 
-## ------------- working directories for Lily ----------
+## ------------- working directories for Jenn ----------
 wd_jenn = '/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA'
 path_jenn = c(
   "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEVAR_International_LTF_r12_2_14_20210701.csv",
@@ -34,39 +34,45 @@ path_jenn = c(
 setwd(wd_lily)
 TEVAR_LTF_07 = read.csv(path_lily[1])
 TEVAR_PROC_07 = read.csv(path_lily[2])
-#TEVAR_LTF_09 = read.csv(path_lily[3])
-#TEVAR_PROC_09 = read.csv(path_lily[4])
+TEVAR_LTF_09 = read.csv(path_lily[3])
+TEVAR_PROC_09 = read.csv(path_lily[4])
 
-setwd(wd_jenn)
-TEVAR_LTF_07 = read.csv(path_jenn[1])
-TEVAR_PROC_07 = read.csv(path_jenn[2])
-#TEVAR_LTF_09 = read.csv(path_lily[3])
-#TEVAR_PROC_09 = read.csv(path_lily[4])
+#setwd(wd_jenn)
+#TEVAR_LTF_07 = read.csv(path_jenn[1])
+#TEVAR_PROC_07 = read.csv(path_jenn[2])
+#TEVAR_LTF_09 = read.csv(path_jenn[3])
+#TEVAR_PROC_09 = read.csv(path_jenn[4])
 ```
 
 ## merge the datasets
 
-Compare the data from July 2021 and September 2021. Keep the most updated ones.
+Compare the data from July 2021 and September 2021. Keep the most updated ones. 
 
-Merge the long term follow-up dataset and the pre-procedure dataset by `PATIENTID`.
+There are 6 rows from LTF July data missing in September dataset. And also 6 missing from the PROC dataset.
 
 ```{r}
-## ------------- merge the data----------
-total <- merge(TEVAR_LTF_07,TEVAR_PROC_07,by="PATIENTID")
-colnames(total)[grepl(".y",colnames(total))]
+## ------------- merge July and September data ----------
 
-total
-combined <- total %>% 
-  rename_at(
-    vars(ends_with(".x")),
-    ~str_replace(., "\\..$","")
-  ) %>% 
-  select_at(
-    vars(-ends_with(".y"))
-  )
+# find data in LTF July data but not in LTF September data by `PATIENTID`
+# add these data points to the September data
+TEVAR_LTF <- rbind(TEVAR_LTF_07[! TEVAR_LTF_07$PATIENTID  %in% TEVAR_LTF_09$PATIENTID,],
+                   TEVAR_LTF_09)
 
+# Similar for PROC data 
+TEVAR_PROC <-rbind(TEVAR_PROC_07[! TEVAR_PROC_07$PATIENTID  %in% TEVAR_PROC_09$PATIENTID,],
+                   TEVAR_PROC_09)
+
+## ------------- merge LTF and PROC data----------
+# same variables in LTF and PROC data
+#colnames(TEVAR_PROC)[colnames(TEVAR_PROC) %in% colnames(TEVAR_LTF)]
+
+TEVAR <- merge(TEVAR_LTF,TEVAR_PROC, all = TRUE,
+               by=c("PATIENTID","PRIMPROCID","DEAD","PROC_SURVIVALDAYS","IDE_OTHER"))
 
 ```
+
+Variables that exists in both LTF and PROC datasets are: `r colnames(TEVAR_PROC)[colnames(TEVAR_PROC) %in% colnames(TEVAR_LTF)]`. Merge by these variables.
+
 
 ## data cleaning based on inclusion, exclusion criteria
 
@@ -76,22 +82,20 @@ Exclusion criteria:
 
 - `PATHOLOGY` exclude groups with pathology: 4=trauma, 8 = Aortic Thrombus,9 = Other (Retired) (retired since 09/30/2014),10 = Aorto-esophageal Fistula (Retired) (retired since 09/30/2014),11 = Aorto-bronchial Fistula (Retired) (retired since 09/30/2014)
 
-*include the indication, merge the two columns*
-
 - `URGENCY`: exclude rupture. (elective is same to asymptomatic)
 
 - `PROXZONE_DISEASE`: exclude 0 and 1 
 
 ```{r}
 ## ------------- inclusion and exclusion----------
-TEVAR_PROC_07 = TEVAR_PROC_07 %>% 
+TEVAR = TEVAR %>% 
   filter(PRESENTATION !=2) %>%
   filter(PATHOLOGY %in% c(1,2,3,5,6,7)) %>%
   filter(URGENCY %in% c(1,2,3)) %>%
   filter(PROXZONE_DISEASE %in% c(2,3,4,5,6,7,8,9))
 
 ## ------------- data cleaning----------
-TEVAR_PROC_07 = TEVAR_PROC_07 %>% 
+TEVAR = TEVAR %>% 
   mutate(DEAD=factor(DEAD)) %>%
   mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
                                labels = c('Asymptomatic','Symptomatic'))) %>%
@@ -104,83 +108,141 @@ TEVAR_PROC_07 = TEVAR_PROC_07 %>%
   mutate(URGENCY=factor(URGENCY,levels = c(1,2,3),labels = c('Elective','Urgent','Emergent'))) %>%
   mutate(PATHOLOGY=factor(PATHOLOGY,levels=c(1,2,3,5,6,7),
                           labels = c('Aneurysm','Dissection','Aneurysm from dissection','PAU',
-                                     'IMH','PAU with IMH')))
+                                     'IMH','PAU with IMH'))) %>%
+  mutate(R_PREOP_AMBUL = factor(R_PREOP_AMBUL,levels = c(1,2,3,4),
+                                labels=c("Amb","Amb w/ Assistance","Wheelchair","Bedridden"))) %>%
+  mutate(ETHNICITY = factor(ETHNICITY,levels=c(0,1),
+                            labels = c('None Hispanic or Latino','Hispanic or Latino'))) %>%
+  mutate(RACE=factor(RACE,levels = c(5,3,2,1,4,6,7),
+                     labels = c('White','Black or African American','Asian',
+                                'American Indian or Alaskan Native','
+                                Native Hawaiian or other Pacific Islander','More than 1 race',
+                                'Unknown/Other'))) %>%
+  mutate(TRANSFER=factor(TRANSFER,levels = c(0,1,2),
+                         labels = c('No','Hospital','Rehab Unit'))) %>%
+  mutate(PRIMARYINSURER=factor(PRIMARYINSURER,levels=c(1,2,3,4,5,6),
+                               labels = c('Medicare','Medicaid','Commercial', 'Military/VA',
+                                          'Non US Insurance','Self Pay'))) %>%
+  mutate(PRIOR_CVD = factor(PRIOR_CVD,levels =c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>%
+  mutate(LIVINGSTATUS=factor(LIVINGSTATUS,levels=c(1,2,3),labels=c('Home',
+                                                                   'Nursing home','Homeless')))%>%
+  mutate(PREOP_FUNCSTATUS=factor(PREOP_FUNCSTATUS,levels = c(0,1,2,3,4),
+                                 labels = c('Full','Light work','Self care','Assisted care',
+                                            'Bed bound'))) %>%
+  mutate(DIABETES=factor(DIABETES,levels = c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>%
+  mutate(PREOP_DIALYSIS=factor(PREOP_DIALYSIS,levels=c(0,1,2),labels=c('No','Yes','Yes'))) %>%
+  mutate(HTN=factor(HTN,levels = c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>%
+  mutate(PREOP_SMOKING=factor(PREOP_SMOKING,levels=c(0,1,2),labels=c('No','Yes','Yes')))
+
+
 
 ```
 
+
+After excluding some data points, there are in total `r nrow(TEVAR)` objectives in the final overall dataset.
 
 ## population of interest: the asymptomatic and symptomatics groups. 
 
 ```{r}
 ## ------------- population of interest ----------
-table1(~  PRESENTATION, data = TEVAR_PROC_07)
+table1(~  PRESENTATION, data = TEVAR)
 ```
-
-
 
 ## Demographic history
 
-```{r}
-## ------------- table1: demographic----------
-table1(~ GENDER+AGE+AGECAT
-         | PRESENTATION, data = TEVAR_PROC_07)
-```
+Under procedure tab, history and demographic variables
 
-## anatomy
+`R_PREOP_AMBUL`: Preop ambulatory status; 1 = Amb,2 = Amb w/ Assistance,3 = Wheelchair,4 = Bedridden
 
-```{r}
-## ------------- table: anatomy ----------
-table1(~ PATHOLOGY+PROXZONE_DISEASE | PRESENTATION, data = TEVAR_PROC_07)
-```
+`TRANSFER`: Transferred From?; 0 = No,1 = Hospital,2 = Rehab Unit
 
+`PRIMARYINSURER`: Primary Insurer; 1 = Medicare,2 = Medicaid,3 = Commercial,4 = Military/VA,5 = Non US Insurance,6 = Self Pay
 
-## patient condition variables:
+`HTCM`: Min/max range: 137 to 203 cm.
 
-`PRIOR_CVD`: 0 = None,1 = hx stroke, asymptomatic,2 = hx stroke, minor deficit,3 = hx stroke, major deficit
+`WTKG`: Min/max range: 18.1 to 227 kgs.
 
-`PRIOR_CAD`: 0 = None,1 = hx MI but no sx,2 = Stable angina,3 = Unstable angina or MI < 6 mos (retired since 09/12/2012),4 = MI < 6 mos,5 = Unstable angina
+*Preference, inch/cm, lb/kg?*
 
-`PRIOR_CHF`: 0 = None,1 = Asymp, hx CHF,2 = Mild,3 = Moderate,4 = Severe
+`LIVINGSTATUS`: Living Status; 1 = Home,2 = Nursing home,3 = Homeless
 
-`COPD`: 0 = No,1 = Not Treated,2 = On Meds,3 = On Home Oxygen
+`PREOP_FUNCSTATUS`: Functional Status; 0 = Full,1 = Light work,2 = Self care,3 = Assisted care,4 = Bed bound
 
-`DIABETES`: 0 = None,1 = Diet,2 = Non-insulin Meds,3 = Insulin
-
-`HTN`: History of hypertension; 0 = No, 1 = Yes (>=140/90 or history) (retired since 11/15/2016), 2 = Yes, controlled  [added on 04/13/2020] , 3 = Yes, uncontrolled  [added on 04/13/2020]
-
-`PREOP_SMOKING`: 0 = Never,1 = Prior,2 = Current
-
-`PRIOR_AORSURG`: Any aortic procedures performed on a separate date prior to the index procedure; 0 = None,1 = Open,2 = Endo,3 = Both,4 = Other (retired since 09/30/2014)
+`PREOP_DIALYSIS`: Dialysis status; 0 = No,1 = Functioning Transplant,2 = On Dialysis
 
 ```{r}
-## ------------- table: patients conditions ----------
-table1(~ factor(R_PREOP_AMBUL)+factor(PREOP_SMOKING)+factor(PRIOR_CVD)+
-         factor(PRIOR_CAD)+factor(PRIOR_CHF)+factor(COPD)+factor(DIABETES)+factor(HTN)+
-         factor(PRIOR_AORSURG)
-       | PRESENTATION, data = TEVAR_PROC_07)
-
+## ------------- table: demographic----------
+table1(~ GENDER+ETHNICITY+RACE+HTCM+WTKG
+         | PRESENTATION, data = TEVAR,caption = 'Table 1- demographic')
 ```
+
+
+## patient condition variables, pathway demographic:
+
+Prior diseases history all changed to 0/1 scale. 
+
+`PRIOR_CVD`, `PRIOR_CAD`, `PRIOR_CHF`, `COPD`, `PRIOR_CABG`, `PRIOR_PCI`, `R_PRIOR_CABGPTCA`, `PRIOR_CEACAS`, `R_PRIOR_CEA`, `PRIOR_ANEURREP`, `PRIOR_BYPASS`, `PRIOR_PVI`.
+
+*only use one variable for past heart disease? but forgot which to use*
+
+`DIABETES`,`PREOP_DIALYSIS`, `HTN`,`PREOP_SMOKING`, `STRESS`, `HEMO` (Pre op Hemoglobin:  range 4-20(g/dl)), 
+
+*Which to include?*
+
+`PREOP_CREAT`, `PREOP_ASA`, `PREOP_P2Y`, `PREOP_STATIN`, `PREOP_BETABLOCKER`, `PREOP_ACE`, `PREOP_ANTICOAG`, 
+
+*Retired variables? Are the info transferred to new variables?*
+
+```{r}
+## ------------- table: patient condition (pathway demographics) ----------
+table1(~ R_PREOP_AMBUL+TRANSFER+PRIMARYINSURER+LIVINGSTATUS+PREOP_FUNCSTATUS+PREOP_DIALYSIS+
+         PRIOR_CVD+DIABETES+PREOP_DIALYSIS+HTN+PREOP_SMOKING+factor(STRESS)+HEMO+PREOP_CREAT
+         | PRESENTATION, data = TEVAR)
+```
+
+## patient condition variables, pathway history:
+
+7 variables related to details about `PRIOR_AORSURG`. *include?*
+
+`PREOP_EF`: Ejection Fraction; 1 = <30%,2 = 30-50%,3 = >50%,4 = Not Done,5 = Unknown
+
+`PREOP_MAXAAADIA`: Maximum Aortic Diameter; *include?*
+
+`LEG_MOTOR_FUNCTION`: Leg Motor Function; 1 = Normal,2 = Mild weakness,3 = Moderate weakness,4 = Severe weakness,5 = Paralysis *include?*
+
+`DISTZONE_DISEASE`: Distal Zone of Disease *include?*
+
+many variables related to details about `PATHOLOGY`.  *include?*
+
+```{r }
+## ------------- table: patient condition anatomy ----------
+table1(~ factor(PREOP_EF)+PATHOLOGY+PREOP_MAXAAADIA+URGENCY+
+         factor(LEG_MOTOR_FUNCTION)+factor(DISTZONE_DISEASE)
+         | PRESENTATION, data = TEVAR,caption = 'Table 2- Anatomy detail ')
+```
+
 
 ## other variables
 
 Surgery year would affect outcome, since surgeons got more familiar with the surgery.
 
 ```{r}
-plot(DEAD~SURGYEAR,data=TEVAR_PROC_07)
+plot(DEAD~SURGYEAR,data=TEVAR)
 ```
 
 
 ## Outcome variables
 
-`PROC_SURVIVALDAYS`: This should be the longest known time of survival data available for the patient. 
-Survival days are calculated as the Last Date of Contact (or Date of Death) for the patient - Procedure date for a procedure. Please refer to included Death and Survival Days Logic.pdf for additional details."
+Primary outcomes: `DEAD` and `PROC_SURVIVALDAYS`.
 
-`POSTOP_LOS`: Length of Stay in days calculated by DISCHARGE_DT - SURGERY_DT
+Secondary outcomes: `POSTOP_LOS`
+
+*other outcomes?*
 
 
 ```{r}
 ## ------------- table3: outcomes----------
-table1(~ factor(DEAD) + PROC_SURVIVALDAYS+POSTOP_LOS | PRESENTATION, data = TEVAR_PROC_07)
+table1(~ DEAD+PROC_SURVIVALDAYS+POSTOP_LOS | PRESENTATION, data = TEVAR,caption='Table 3- outcomes ')
 
 ## ------------- Survival curves----------
 
@@ -191,16 +253,18 @@ table1(~ factor(DEAD) + PROC_SURVIVALDAYS+POSTOP_LOS | PRESENTATION, data = TEVA
 ```{r}
 ## ------------- clustering variables----------
 
-#TEVAR_PROC_07 %>% select(REGIONID) %>% table() 
-#TEVAR_PROC_07 %>% select(CENTERID) %>% table() 
-#TEVAR_PROC_07 %>% select(PHYSICIANID) %>% table() 
+#TEVAR %>% select(REGIONID) %>% table() 
+#TEVAR %>% select(CENTERID) %>% table() 
+#TEVAR %>% select(PHYSICIANID) %>% table() 
 ```
 
 `r nlevels(factor(TEVAR_PROC_07$REGIONID))` regions, `r nlevels(factor(TEVAR_PROC_07$CENTERID))` centers, `r nlevels(factor(TEVAR_PROC_07$PHYSICIANID))` physicians. 
 
 Most physicians only performed 1 or 2 procedures. Several performed over 100 procedures. Since the more surgeries a surgeon did, the more familiar he or she is. So we need to cluster on this.
 
-*Cluster on centers and physicians*
+*how to do clustering on centers and physicians*
+
+*mean and median*: based on outliners?
 
 \newpage
 ### Code Appendix
