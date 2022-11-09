@@ -267,7 +267,7 @@ Most physicians only performed 1 or 2 procedures. Several performed over 100 pro
 *mean and median*: based on outliners?
 
 \newpage
-### Code Appendix
+## Code Appendix
 
 ```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE,include=TRUE}
 ```
