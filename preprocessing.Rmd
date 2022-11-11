@@ -37,11 +37,11 @@ TEVAR_PROC_07 = read.csv(path_lily[2])
 TEVAR_LTF_09 = read.csv(path_lily[3])
 TEVAR_PROC_09 = read.csv(path_lily[4])
 
-#setwd(wd_jenn)
-#TEVAR_LTF_07 = read.csv(path_jenn[1])
-#TEVAR_PROC_07 = read.csv(path_jenn[2])
-#TEVAR_LTF_09 = read.csv(path_jenn[3])
-#TEVAR_PROC_09 = read.csv(path_jenn[4])
+setwd(wd_jenn)
+TEVAR_LTF_07 = read.csv(path_jenn[1])
+TEVAR_PROC_07 = read.csv(path_jenn[2])
+TEVAR_LTF_09 = read.csv(path_jenn[3])
+TEVAR_PROC_09 = read.csv(path_jenn[4])
 ```
 
 ## merge the datasets
@@ -68,6 +68,37 @@ TEVAR_PROC <-rbind(TEVAR_PROC_07[! TEVAR_PROC_07$PATIENTID  %in% TEVAR_PROC_09$P
 
 TEVAR <- merge(TEVAR_LTF,TEVAR_PROC, all = TRUE,
                by=c("PATIENTID","PRIMPROCID","DEAD","PROC_SURVIVALDAYS","IDE_OTHER"))
+
+
+# FBVAR
+# 0"0.None" 1"1.Scallop/Fen/Branch" 2"2.Occluded/Covered" 3"3.Chimney"
+TEVAR<-TEVAR %>% mutate(lrenal = ifelse(BRANCH_LRENAL_TRT %in% c(0,6,7), 0, 
+                                  ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
+                                        ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
+                                               ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
+                              rrenal = ifelse(BRANCH_RRENAL_TRT %in% c(0,6,7), 0, 
+                                  ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
+                                        ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
+                                               ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
+                              sma = ifelse(BRANCH_SMA_TRT %in% c(0,6,7), 0, 
+                                  ifelse(BRANCH_SMA_TRT %in% c(9,10,11,12,13,14), 1,
+                                        ifelse(BRANCH_SMA_TRT %in% c(1,2,3,4), 2,
+                                               ifelse(BRANCH_SMA_TRT == 8,3,NA)))),
+                              celiac = ifelse(BRANCH_CELIAC_TRT %in% c(0,6,7), 0, 
+                                  ifelse(BRANCH_CELIAC_TRT %in% c(9,10,11,12,13,14), 1,
+                                        ifelse(BRANCH_CELIAC_TRT %in% c(1,2,3,4), 2,
+                                               ifelse(BRANCH_CELIAC_TRT == 8,3,NA)))),
+                              lsub = ifelse(BRANCH_LSUB_TRT %in% c(0,6,7), 0, 
+                                  ifelse(BRANCH_LSUB_TRT %in% c(9,10,11,12,13,14), 1,
+                                        ifelse(BRANCH_LSUB_TRT %in% c(1,2,3,4), 2,
+                                               ifelse(BRANCH_LSUB_TRT == 8,3,NA)))),
+
+                              )
+
+# diagnosing duplicate id, decide which record to keep?
+n_occur <- data.frame(table(TEVAR$PATIENTID))
+n_occur[n_occur$Freq > 1,]
+TEVAR[TEVAR$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]%>%select(PATIENTID, lrenal,rrenal, celiac, lsub,sma)
 
 ```
 
