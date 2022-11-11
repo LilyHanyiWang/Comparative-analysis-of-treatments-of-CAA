@@ -14,12 +14,12 @@ library(table1)
 
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
-wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
-path_lily = c(
-  "../data/TEVAR_International_20210712/TEVAR_International_LTF_r12_2_14_20210701.csv",
-  "../data/TEVAR_International_20210712/TEVAR_International_PROC_r12_2_14_20210701.csv",
-  "../data/TEVAR_International_20210901/TEVAR_International_LTF_r12_2_14_20210901.csv",
-  "../data/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv")
+#wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+#path_lily = c(
+#  "../data/TEVAR_International_20210712/TEVAR_International_LTF_r12_2_14_20210701.csv",
+#  "../data/TEVAR_International_20210712/TEVAR_International_PROC_r12_2_14_20210701.csv",
+#  "../data/TEVAR_International_20210901/TEVAR_International_LTF_r12_2_14_20210901.csv",
+#  "../data/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv")
 
 
 ## ------------- working directories for Jenn ----------
@@ -31,11 +31,11 @@ path_jenn = c(
   "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv")
 
 ## ------------- read data ----------
-setwd(wd_lily)
-TEVAR_LTF_07 = read.csv(path_lily[1])
-TEVAR_PROC_07 = read.csv(path_lily[2])
-TEVAR_LTF_09 = read.csv(path_lily[3])
-TEVAR_PROC_09 = read.csv(path_lily[4])
+#setwd(wd_lily)
+#TEVAR_LTF_07 = read.csv(path_lily[1])
+#TEVAR_PROC_07 = read.csv(path_lily[2])
+#TEVAR_LTF_09 = read.csv(path_lily[3])
+#TEVAR_PROC_09 = read.csv(path_lily[4])
 
 setwd(wd_jenn)
 TEVAR_LTF_07 = read.csv(path_jenn[1])
@@ -49,6 +49,8 @@ TEVAR_PROC_09 = read.csv(path_jenn[4])
 Compare the data from July 2021 and September 2021. Keep the most updated ones. 
 
 There are 6 rows from LTF July data missing in September dataset. And also 6 missing from the PROC dataset.
+
+About 3327 participants have more than one records in this dataset.
 
 ```{r}
 ## ------------- merge July and September data ----------
@@ -97,7 +99,7 @@ TEVAR<-TEVAR %>% mutate(lrenal = ifelse(BRANCH_LRENAL_TRT %in% c(0,6,7), 0,
 
 # diagnosing duplicate id, decide which record to keep?
 n_occur <- data.frame(table(TEVAR$PATIENTID))
-n_occur[n_occur$Freq > 1,]
+n_occur[n_occur$Freq > 1,]%>%n_distinct
 TEVAR[TEVAR$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]%>%select(PATIENTID, lrenal,rrenal, celiac, lsub,sma)
 
 ```
