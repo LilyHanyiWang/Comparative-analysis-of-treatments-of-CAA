@@ -1,5 +1,5 @@
 ---
-title: "preprocessing"
+title: "Data Preprocessing on VQI TEVAR Dataset"
 author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
 output: pdf_document
 ---
@@ -8,40 +8,42 @@ output: pdf_document
 knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
 library(tidyverse)
 library(table1)
-
+library(Hmisc)
+library(ggplot2)
 ```
 
 
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
-#wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
-#path_lily = c(
-#  "../data/TEVAR_International_20210712/TEVAR_International_LTF_r12_2_14_20210701.csv",
-#  "../data/TEVAR_International_20210712/TEVAR_International_PROC_r12_2_14_20210701.csv",
-#  "../data/TEVAR_International_20210901/TEVAR_International_LTF_r12_2_14_20210901.csv",
-#  "../data/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv")
+wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+path_lily = c(
+  "../data/TEVAR_International_20210712/TEVAR_International_LTF_r12_2_14_20210701.csv",
+  "../data/TEVAR_International_20210712/TEVAR_International_PROC_r12_2_14_20210701.csv",
+  "../data/TEVAR_International_20210901/TEVAR_International_LTF_r12_2_14_20210901.csv",
+  "../data/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv",
+  "../data/FBVAR.csv")
 
 
 ## ------------- working directories for Jenn ----------
-wd_jenn = '/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA'
-path_jenn = c(
-  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEVAR_International_LTF_r12_2_14_20210701.csv",
-  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEVAR_International_PROC_r12_2_14_20210701.csv",
-  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEVAR_International_LTF_r12_2_14_20210901.csv",
-  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv")
+#wd_jenn = '/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA'
+#path_jenn = c(
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEV#AR_International_LTF_r12_2_14_20210701.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEV#AR_International_PROC_r12_2_14_20210701.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEVA#R_International_LTF_r12_2_14_20210901.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEV#AR_International_PROC_r12_2_14_20210901.csv")
 
 ## ------------- read data ----------
-#setwd(wd_lily)
-#TEVAR_LTF_07 = read.csv(path_lily[1])
-#TEVAR_PROC_07 = read.csv(path_lily[2])
-#TEVAR_LTF_09 = read.csv(path_lily[3])
-#TEVAR_PROC_09 = read.csv(path_lily[4])
+setwd(wd_lily)
+TEVAR_LTF_07 = read.csv(path_lily[1])
+TEVAR_PROC_07 = read.csv(path_lily[2])
+TEVAR_LTF_09 = read.csv(path_lily[3])
+TEVAR_PROC_09 = read.csv(path_lily[4])
 
-setwd(wd_jenn)
-TEVAR_LTF_07 = read.csv(path_jenn[1])
-TEVAR_PROC_07 = read.csv(path_jenn[2])
-TEVAR_LTF_09 = read.csv(path_jenn[3])
-TEVAR_PROC_09 = read.csv(path_jenn[4])
+#setwd(wd_jenn)
+#TEVAR_LTF_07 = read.csv(path_jenn[1])
+#TEVAR_PROC_07 = read.csv(path_jenn[2])
+#TEVAR_LTF_09 = read.csv(path_jenn[3])
+#TEVAR_PROC_09 = read.csv(path_jenn[4])
 ```
 
 ## merge the datasets
@@ -50,7 +52,7 @@ Compare the data from July 2021 and September 2021. Keep the most updated ones.
 
 There are 6 rows from LTF July data missing in September dataset. And also 6 missing from the PROC dataset.
 
-About 3327 participants have more than one records in this dataset.
+*Only received info of PROC dataset variables? No info about LTF variables?*
 
 ```{r}
 ## ------------- merge July and September data ----------
@@ -99,13 +101,14 @@ TEVAR<-TEVAR %>% mutate(lrenal = ifelse(BRANCH_LRENAL_TRT %in% c(0,6,7), 0,
 
 # diagnosing duplicate id, decide which record to keep?
 n_occur <- data.frame(table(TEVAR$PATIENTID))
-n_occur[n_occur$Freq > 1,]%>%n_distinct
-TEVAR[TEVAR$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]%>%select(PATIENTID, lrenal,rrenal, celiac, lsub,sma)
+#n_occur[n_occur$Freq > 1,]%>%n_distinct
+#TEVAR[TEVAR$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]%>%select(PATIENTID, lrenal,rrenal, celiac, lsub,sma)
 
 ```
 
 Variables that exists in both LTF and PROC datasets are: `r colnames(TEVAR_PROC)[colnames(TEVAR_PROC) %in% colnames(TEVAR_LTF)]`. Merge by these variables.
 
+`r n_occur[n_occur$Freq > 1,]%>%n_distinct` participants have more than one records in this dataset.
 
 ## data cleaning based on inclusion, exclusion criteria
 
@@ -119,60 +122,363 @@ Exclusion criteria:
 
 - `PROXZONE_DISEASE`: exclude 0 and 1 
 
+- `PROXZONE_DISEASE < DISTZONE_DISEASE`: disease starting point should be earlier than ending point.
+
+Wrong data points with distal zone < proximal zone:
 ```{r}
-## ------------- inclusion and exclusion----------
+TEVAR %>% filter(DISTZONE_DISEASE < PROXZONE_DISEASE) %>%
+  select(PATIENTID,PROXZONE_DISEASE,DISTZONE_DISEASE)
+
+## ------------- exclusion----------
 TEVAR = TEVAR %>% 
   filter(PRESENTATION !=2) %>%
   filter(PATHOLOGY %in% c(1,2,3,5,6,7)) %>%
   filter(URGENCY %in% c(1,2,3)) %>%
-  filter(PROXZONE_DISEASE %in% c(2,3,4,5,6,7,8,9))
+  filter(PROXZONE_DISEASE %in% c(2,3,4,5,6,7,8,9)) %>%
+  filter(DISTZONE_DISEASE > PROXZONE_DISEASE)
 
-## ------------- data cleaning----------
+n_occur <- data.frame(table(TEVAR$PATIENTID))
+```
+
+After exclsion, there are in total `r nrow(TEVAR)` objectives in the final `TEVAR` dataset. `r n_occur[n_occur$Freq > 1,]%>%n_distinct` participants have more than one records in this dataset.
+
+Data cleaning: comorbidities changed to No/Yes scale.
+
+```{r}
+## ------------- variables cleaning, patient demographic and co-morbidities----------
 TEVAR = TEVAR %>% 
-  mutate(DEAD=factor(DEAD)) %>%
-  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
-                               labels = c('Asymptomatic','Symptomatic'))) %>%
-  mutate(AGECAT = factor(AGECAT,levels = c(1,2,3,4,5,6,7),
-                         labels = c('<40','40-49','50-59','60-69','70-79','80-89','>89'))) %>%
-  mutate(GENDER=factor(GENDER,levels=c(1,2),
-                       labels=c('male','female'))) %>%
   mutate(SURGYEAR=factor(SURGYEAR)) %>%
-  mutate(PROXZONE_DISEASE=factor(PROXZONE_DISEASE)) %>%
-  mutate(URGENCY=factor(URGENCY,levels = c(1,2,3),labels = c('Elective','Urgent','Emergent'))) %>%
-  mutate(PATHOLOGY=factor(PATHOLOGY,levels=c(1,2,3,5,6,7),
-                          labels = c('Aneurysm','Dissection','Aneurysm from dissection','PAU',
-                                     'IMH','PAU with IMH'))) %>%
+  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
+                               labels = c('Asymptomatic','Symptomatic')))
+
+
+TEVAR = TEVAR %>% 
   mutate(R_PREOP_AMBUL = factor(R_PREOP_AMBUL,levels = c(1,2,3,4),
                                 labels=c("Amb","Amb w/ Assistance","Wheelchair","Bedridden"))) %>%
+  mutate(AGECAT = factor(AGECAT,levels = c(1,2,3,4,5,6,7),
+                         labels = c('<40','40-49','50-59','60-69','70-79','80-89','>89')))  %>%
+  mutate(GENDER=factor(GENDER,levels=c(1,2),labels=c('male','female'))) %>%
   mutate(ETHNICITY = factor(ETHNICITY,levels=c(0,1),
                             labels = c('None Hispanic or Latino','Hispanic or Latino'))) %>%
   mutate(RACE=factor(RACE,levels = c(5,3,2,1,4,6,7),
                      labels = c('White','Black or African American','Asian',
-                                'American Indian or Alaskan Native','
-                                Native Hawaiian or other Pacific Islander','More than 1 race',
+                                'American Indian or Alaskan Native',
+                                'Native Hawaiian or other Pacific Islander','More than 1 race',
                                 'Unknown/Other'))) %>%
-  mutate(TRANSFER=factor(TRANSFER,levels = c(0,1,2),
-                         labels = c('No','Hospital','Rehab Unit'))) %>%
+  mutate(TRANSFER=factor(TRANSFER,levels = c(0,1,2),labels = c('No','Hospital','Rehab Unit'))) %>%
   mutate(PRIMARYINSURER=factor(PRIMARYINSURER,levels=c(1,2,3,4,5,6),
                                labels = c('Medicare','Medicaid','Commercial', 'Military/VA',
                                           'Non US Insurance','Self Pay'))) %>%
-  mutate(PRIOR_CVD = factor(PRIOR_CVD,levels =c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>%
-  mutate(LIVINGSTATUS=factor(LIVINGSTATUS,levels=c(1,2,3),labels=c('Home',
-                                                                   'Nursing home','Homeless')))%>%
+  mutate(LIVINGSTATUS=factor(LIVINGSTATUS,levels=c(1,2,3),
+                             labels=c('Home','Nursing home','Homeless'))) %>%
   mutate(PREOP_FUNCSTATUS=factor(PREOP_FUNCSTATUS,levels = c(0,1,2,3,4),
                                  labels = c('Full','Light work','Self care','Assisted care',
                                             'Bed bound'))) %>%
+  mutate(PRIOR_CVD = factor(PRIOR_CVD,levels =c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>%
+  mutate(PRIOR_CAD = factor(PRIOR_CAD,levels =c(0,1,2,3,4,5),
+                            labels = c('No','Yes','Yes','Yes','Yes','Yes'))) %>%
+  mutate(PRIOR_CHF = factor(PRIOR_CHF,levels =c(0,1,2,3,4),
+                            labels = c('No','Yes','Yes','Yes','Yes'))) %>% 
+  mutate(COPD = factor(COPD,levels = c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>% 
   mutate(DIABETES=factor(DIABETES,levels = c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>%
   mutate(PREOP_DIALYSIS=factor(PREOP_DIALYSIS,levels=c(0,1,2),labels=c('No','Yes','Yes'))) %>%
   mutate(HTN=factor(HTN,levels = c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>%
-  mutate(PREOP_SMOKING=factor(PREOP_SMOKING,levels=c(0,1,2),labels=c('No','Yes','Yes')))
+  mutate(PREOP_SMOKING=factor(PREOP_SMOKING,levels=c(0,1,2),labels=c('No','Yes','Yes'))) %>% 
+  mutate(PRIOR_CABG = factor(PRIOR_CABG,levels = c(0,1,2),labels = c('No','Yes','Yes'))) %>% 
+  mutate(PRIOR_PCI = factor(PRIOR_PCI,levels = c(0,1,2),labels = c('No','Yes','Yes'))) %>% 
+  mutate(PRIOR_ANEURREP = factor(PRIOR_ANEURREP,levels =c(0,1,2,3,4,5),
+                                 labels = c('No','Yes','Yes','Yes','Yes','Yes'))) %>%
+  mutate(STRESS = factor(STRESS,levels =c(0,1,2,3,4),
+                         labels = c('No','Yes','Yes','Yes','Yes'))) %>%
+  mutate(DC_ASA = factor(DC_ASA,levels = c(0,1,2,3),labels = c('No','Yes','No','No'))) %>% 
+  mutate(DC_P2Y = factor(DC_P2Y,levels =c(0,1,2,3,4,5,6,7),
+                         labels = c('No','Yes','Yes','Yes','Yes','Yes','No','No'))) %>% 
+  mutate(DC_STATIN = factor(DC_STATIN,levels = c(0,1,2,3),labels = c('No','Yes','No','No')))
 
 
+## ------------- variables cleaning, operative variables----------
+
+TEVAR = TEVAR %>% 
+  mutate(PRIOR_AORSURG=factor(PRIOR_AORSURG,levels=c(0,1,2,3,4),
+                              labels=c('None','Open','Endo','Both','Other'))) %>%
+  mutate(PRIOR_AORSURG_OPENLOC1=factor(PRIOR_AORSURG_OPENLOC1,
+                                      levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(PRIOR_AORSURG_OPENLOC2=factor(PRIOR_AORSURG_OPENLOC2,
+                                        levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(PRIOR_AORSURG_OPENLOC3=factor(PRIOR_AORSURG_OPENLOC3,
+                                        levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(PRIOR_AORSURG_OPENLOC4=factor(PRIOR_AORSURG_OPENLOC4,
+                                        levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(PRIOR_AORSURG_ENDOLOC1=factor(PRIOR_AORSURG_ENDOLOC1,
+                                        levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(PRIOR_AORSURG_ENDOLOC2=factor(PRIOR_AORSURG_ENDOLOC2,
+                                        levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(PRIOR_AORSURG_ENDOLOC3=factor(PRIOR_AORSURG_ENDOLOC3,
+                                        levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(PRIOR_AORSURG_ENDOLOC4=factor(PRIOR_AORSURG_ENDOLOC4,
+                                        levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(PATHOLOGY=factor(PATHOLOGY,levels=c(1,2,3,5,6,7),
+                          labels = c('Aneurysm','Dissection','Aneurysm from dissection','PAU',
+                                     'IMH','PAU with IMH'))) %>%
+  mutate(URGENCY=factor(URGENCY,levels = c(1,2,3),labels = c('Elective','Urgent','Emergent'))) %>% 
+  mutate(PATHOLOGY_ANEURYSM_TYPE=
+           factor(PATHOLOGY_ANEURYSM_TYPE,levels = c(1,2,3,4,5),
+                  labels = c('Degenerative, fusiform','Degenerative, saccular','Anastomotic',
+                              'Prior trauma','Intercostal or visceral patch'))) %>%
+  mutate(PATHOLOGY_DISSECT_TYPE=
+           factor(PATHOLOGY_DISSECT_TYPE,levels = c(1,2),
+                  labels = c('Acute, <= 30 days','Chronic, >30 daysr'))) %>% 
+  mutate(GENHIST = factor(GENHIST,levels = c(0,1,2,3,4,5),
+                          labels = c('No','Yes','Yes','Yes','Yes','Yes'))) %>% 
+  mutate(R_GENHIST = factor(R_GENHIST,levels = c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>% 
+  mutate(Genetic=GENHIST) %>%  ############
+  mutate(PROXZONE_DISEASE=factor(PROXZONE_DISEASE)) %>%
+  mutate(DISTZONE_DISEASE=
+           factor(DISTZONE_DISEASE, levels = c(0:15),
+                  labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L','10B','11R','11L','11B'))) %>%
+  mutate(ANESTHESIA=factor(ANESTHESIA,levels = c(1,2,3),labels = c('Local','Regional','General')))%>%
+  mutate(IVUSTEE=factor(IVUSTEE,levels = c(0:5),labels = c('No','IVUS','TEE','Both','No','IVUS')))%>%
+  mutate(ACCESS_R=factor(ACCESS_R,levels = c(0,1,2,3,4,5),
+                         labels = c('None','Percutaneous femoral','Open femoral, transverse',
+                                    'Open femoral, vertical','Open femoral, failed percutanous', 
+                                    'Iliac, via retroperitoneal'))) %>%
+  mutate(ACCESS_L=factor(ACCESS_L,levels = c(0,1,2,3,4,5),
+                          labels = c('None','Percutaneous femoral','Open femoral, transverse',
+                                    'Open femoral, vertical','Open femoral, failed percutanous', 
+                                    'Iliac, via retroperitoneal')))  %>%
+  mutate(ARMNECK_ACCESS=factor(ARMNECK_ACCESS,levels =c(0,1,2,3),
+                                labels = c('No','For branch treatment',
+                                          'For femoral-brachial wire','For both')))%>%
+  mutate(ARMNECK_ACCESS_LOC=factor(ARMNECK_ACCESS_LOC,levels =c(1:7),
+                                labels = c('Right arm','Left arm','Right axillary',
+                                          'Left axillary','Right carotid',
+                                          'Left carotid','Multiple')))%>%
+  mutate(AORDEV_NUM=factor(AORDEV_NUM))%>%
+  mutate(AORDEV_CMOD=factor(AORDEV_CMOD,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(STAGEDAORTRT=factor(STAGEDAORTRT,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(DEV1_GTYPE=factor(DEV1_GTYPE,levels=c(1,2,3),
+                           labels=c('Standard','Custom','Physician modified'))) %>%
+  mutate(DEV2_GTYPE=factor(DEV2_GTYPE,levels=c(1,2,3),
+                           labels=c('Standard','Custom','Physician modified'))) %>%
+  mutate(DEV3_GTYPE=factor(DEV3_GTYPE,levels=c(1,2,3),
+                           labels=c('Standard','Custom','Physician modified'))) %>%
+  mutate(DEV1_PROXZONE=factor(DEV1_PROXZONE))%>%
+  mutate(DEV2_PROXZONE=factor(DEV2_PROXZONE))%>%
+  mutate(DEV3_PROXZONE=factor(DEV3_PROXZONE))%>%
+  mutate(DEV4_PROXZONE=factor(DEV4_PROXZONE))%>%
+  mutate(DEV5_PROXZONE=factor(DEV5_PROXZONE))%>%
+  mutate(DEV6_PROXZONE=factor(DEV6_PROXZONE))%>%
+  mutate(DEV1_DISTZONE= factor(DEV1_DISTZONE, levels = c(0:15),
+                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
+                                          '10B','11R','11L','11B'))) %>%
+  mutate(DEV2_DISTZONE= factor(DEV2_DISTZONE, levels = c(0:15),
+                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
+                                          '10B','11R','11L','11B'))) %>%
+  mutate(DEV3_DISTZONE= factor(DEV3_DISTZONE, levels = c(0:15),
+                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
+                                          '10B','11R','11L','11B'))) %>%
+  mutate(DEV4_DISTZONE= factor(DEV4_DISTZONE, levels = c(0:15),
+                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
+                                          '10B','11R','11L','11B'))) %>%
+  mutate(DEV5_DISTZONE= factor(DEV5_DISTZONE, levels = c(0:15),
+                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
+                                          '10B','11R','11L','11B'))) %>%
+  mutate(DEV6_DISTZONE= factor(DEV6_DISTZONE, levels = c(0:15),
+                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
+                                          '10B','11R','11L','11B'))) %>%
+  mutate(ILIACDEV_END_R= factor(ILIACDEV_END_R, levels = c(0,1,2,3),
+                               labels = c('None','Common',
+                                          'External,Intended','External, Unintended'))) %>%
+  mutate(ILIACDEV_END_L= factor(ILIACDEV_END_L, levels = c(0,1,2,3),
+                               labels = c('None','Common',
+                                          'External,Intended','External, Unintended'))) %>%
+  mutate(BRANCH_STAGED=factor(BRANCH_STAGED,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(BRANCH_LSUB=factor(BRANCH_LSUB,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(BRANCH_CELIAC=factor(BRANCH_CELIAC,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(BRANCH_SMA=factor(BRANCH_SMA,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(BRANCH_RRENAL=factor(BRANCH_RRENAL,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(BRANCH_LRENAL=factor(BRANCH_LRENAL,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(BRANCH_INNO_POST=factor(BRANCH_INNO_POST,levels=c(1,2,3),
+                                 labels=c('Patent','Stenosis/Partial Coverage > 50%','Occluded'))) %>%
+  mutate(BRANCH_LSUB_VERTPAT=
+           factor(BRANCH_LSUB_VERTPAT,levels=c(1:7),
+                  labels=c('Patent bilat','Patent bilat, L dominant','Patent bilat, R dominant',
+                           'Occluded L,  patent R','Occluded R, patent L','Occluded bilat',
+                           'Not imaged'))) %>%
+  mutate(ANESTHESIA_GEN_TIMEEXT=factor(ANESTHESIA_GEN_TIMEEXT,levels=c(1,2,4,5),
+                                       labels=c('In OR','<12 hrs','12-24 hrs','>24 hrs'))) %>%
+  mutate(POSTOP_SPINALDRAIN=factor(POSTOP_SPINALDRAIN,levels=c(0,1,2,3),
+                                   labels=c('None','Pre-op','Post-op, prophylactic',
+                                            'Post-op for spinal ischemia'))) %>%
+  mutate(R_CELIAC=factor(R_CELIAC,levels=c(0:9),
+                         labels=c('Patent, no intervention','Chronically Occluded', 
+                                  'Purposely Occluded','De-branch','Stent Only','Chimney',
+                                  'Fen/scallop Only','Stented-fen',
+                                  'Fenestrated Stentgraft Branch (Branched TEVAR)',
+                                  'Side-arm Stent-graft Branch'))) %>%
+  
+  mutate(R_GRFTCONFIG=factor(R_GRFTCONFIG,levels=c(1,2,3),
+                         labels=c('Standard','Plus Bare Stent','Branched/fenestrated'))) %>%
+  mutate(R_LT_RENAL=factor(R_LT_RENAL,levels=c(0:9),
+                           labels=c('Patent, no intervention','Chronically Occluded', 
+                                    'Purposely Occluded','De-branch','Stent Only','Chimney',
+                                    'Fen/scallop Only','Stented-fen',
+                                    'Fenestrated Stentgraft Branch (Branched TEVAR)',
+                                    'Side-arm Stent-graft Branch'))) %>%
+  mutate(R_PRATTZONE=factor(R_PRATTZONE)) %>%
+  mutate(R_RT_RENAL=factor(R_RT_RENAL,levels=c(0:9),
+                           labels=c('Patent, no intervention','Chronically Occluded', 
+                                    'Purposely Occluded','De-branch','Stent Only','Chimney',
+                                    'Fen/scallop Only','Stented-fen',
+                                    'Fenestrated Stentgraft Branch (Branched TEVAR)',
+                                    'Side-arm Stent-graft Branch'))) %>%
+  mutate(R_SMA=factor(R_SMA,levels=c(0:9),
+                           labels=c('Patent, no intervention','Chronically Occluded', 
+                                    'Purposely Occluded','De-branch','Stent Only','Chimney',
+                                    'Fen/scallop Only','Stented-fen',
+                                    'Fenestrated Stentgraft Branch (Branched TEVAR)',
+                                    'Side-arm Stent-graft Branch'))) %>%
+  mutate(R_SPINAL_DRAIN=factor(R_SPINAL_DRAIN,levels=c(0,1,2),
+                           labels=c('No Drain','Pre-op Drain','Post-op Drain'))) %>%
+  mutate(BRANCH_CELIAC_TRT=factor(BRANCH_CELIAC_TRT,levels=c(0:17),
+                           labels=c('None','Purposely covered','Unintentionally covered',
+                                    'Occluded - coil','Occluded - plug','
+                                    Occluded - open','Stent','Stent-graft','Chimney',
+                                    'Scallop','Stented Scallop','Fenestration','Stented-fen',
+                                    'Fen branch','Side-arm branch',
+                                    'Surgical bypass','Thromboembolectomy','Iliac Device'))) %>%
+  mutate(BRANCH_SMA_TRT=factor(BRANCH_SMA_TRT,levels=c(0:17),
+                           labels=c('None','Purposely covered','Unintentionally covered',
+                                    'Occluded - coil','Occluded - plug','
+                                    Occluded - open','Stent','Stent-graft','Chimney',
+                                    'Scallop','Stented Scallop','Fenestration','Stented-fen',
+                                    'Fen branch','Side-arm branch',
+                                    'Surgical bypass','Thromboembolectomy','Iliac Device'))) %>%
+  mutate(BRANCH_RRENAL_TRT=factor(BRANCH_RRENAL_TRT,levels=c(0:17),
+                           labels=c('None','Purposely covered','Unintentionally covered',
+                                    'Occluded - coil','Occluded - plug','
+                                    Occluded - open','Stent','Stent-graft','Chimney',
+                                    'Scallop','Stented Scallop','Fenestration','Stented-fen',
+                                    'Fen branch','Side-arm branch',
+                                    'Surgical bypass','Thromboembolectomy','Iliac Device'))) %>%
+  mutate(BRANCH_LRENAL_TRT=factor(BRANCH_LRENAL_TRT,levels=c(0:17),
+                           labels=c('None','Purposely covered','Unintentionally covered',
+                                    'Occluded - coil','Occluded - plug','
+                                    Occluded - open','Stent','Stent-graft','Chimney',
+                                    'Scallop','Stented Scallop','Fenestration','Stented-fen',
+                                    'Fen branch','Side-arm branch',
+                                    'Surgical bypass','Thromboembolectomy','Iliac Device')))
+
+
+## ------------- variables cleaning, outcomes----------
+TEVAR = TEVAR %>% 
+  mutate(DEAD=factor(DEAD)) %>%
+  mutate(AORDEV_TECHSUCC=factor(AORDEV_TECHSUCC,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(CONVTOOPEN=factor(CONVTOOPEN,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(R_ENDOLEAK_AT_COMPLETION=
+           factor(R_ENDOLEAK_AT_COMPLETION,levels=c(0:4),
+                  labels=c('No','Attachment Site (type I)','Branch (type II)',
+                           'Mid Graft (type III)','Indeterminate'))) %>%
+  mutate(BRANCH_LSUB_POST=factor(BRANCH_LSUB_POST,levels=c(1,2,3),
+                                 labels=c('Patent','Stenosis/Partial Coverage > 50%','Occluded'))) %>%
+  mutate(BRANCH_CELIAC_POST=factor(BRANCH_CELIAC_POST,levels=c(1,2,3),
+                                 labels=c('Patent','Stenosis/Partial Coverage > 50%','Occluded'))) %>%
+  mutate(BRANCH_SMA_POST=factor(BRANCH_SMA_POST,levels=c(1,2,3),
+                                 labels=c('Patent','Stenosis/Partial Coverage > 50%','Occluded'))) %>%
+  mutate(BRANCH_RRENAL_POST=factor(BRANCH_RRENAL_POST,levels=c(1,2,3),
+                                 labels=c('Patent','Stenosis/Partial Coverage > 50%','Occluded'))) %>%
+  mutate(BRANCH_LRENAL_POST=factor(BRANCH_LRENAL_POST,levels=c(1,2,3),
+                                 labels=c('Patent','Stenosis/Partial Coverage > 50%','Occluded'))) %>%
+  mutate(BRANCH_RCOMILI_POST=factor(BRANCH_RCOMILI_POST,levels=c(1,2,3),
+                                 labels=c('Patent','Stenosis/Partial Coverage > 50%','Occluded'))) %>%
+  mutate(BRANCH_LCOMILI_POST=factor(BRANCH_LCOMILI_POST,levels=c(1,2,3),
+                                 labels=c('Patent','Stenosis/Partial Coverage > 50%','Occluded'))) %>%
+  mutate(POSTOP_VASO=factor(POSTOP_VASO,levels=c(0,1,2,3),labels=c('No','Yes','Yes','Yes'))) %>%
+  mutate(POSTOP_COMPLICATIONS=factor(POSTOP_COMPLICATIONS,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(R_POSTOP_HEMATOMA=factor(R_POSTOP_HEMATOMA,levels=c(0,1,2,3,4),
+                                  labels=c('No','Minor','Transfusion','Thrombin injection',
+                                           'Surgical Rx'))) %>%
+  mutate(R_POSTOP_SITEOCC=factor(R_POSTOP_SITEOCC,levels=c(0:5),
+                                  labels=c('No','Medical Rx','Interventional Rx','Surgical Rx',
+                                           'Stenosis','Occlusion'))) %>%
+  mutate(POSTOP_MI=factor(POSTOP_MI,levels=c(0,1,2),
+                                  labels=c('No','Troponin only','EKG or clinical'))) %>%
+  mutate(POSTOP_DYSRHYTHMIA=factor(POSTOP_DYSRHYTHMIA,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(POSTOP_CHF=factor(POSTOP_CHF,levels=c(0,1),labels=c('No','Yes'))) %>%
+  mutate(POSTOP_RESPIRATORY=factor(POSTOP_RESPIRATORY,levels = c(0:3),
+                                   labels = c('No','Yes','Yes','Yes'))) %>%
+  mutate(POSTOP_DIALYSIS=factor(POSTOP_DIALYSIS,levels = c(0:2),
+                                labels = c('No','Yes','Yes'))) %>%
+  mutate(POSTOP_ARMEMBO=factor(POSTOP_ARMEMBO,levels = c(0:5),
+                               labels = c('No','Yes','Yes','Yes','Yes','Yes'))) %>%
+  mutate(POSTOP_LEGEMBO=factor(POSTOP_LEGEMBO,levels = c(0:5),
+                               labels = c('No','Yes','Yes','Yes','Yes','Yes'))) %>%
+  mutate(POSTOP_LEGCOMPART=factor(POSTOP_LEGCOMPART,levels = c(0:4),
+                                  labels = c('No','Yes','Yes','Yes','Yes'))) %>%
+  mutate(R_POSTOP_BOWELISCH=factor(R_POSTOP_BOWELISCH,levels = c(0:2),labels = c('No','Yes','Yes'))) %>%
+  mutate(POSTOP_RENALISCH=factor(POSTOP_RENALISCH,levels = c(0:3),
+                                 labels = c('No','Yes','Yes','Yes'))) %>%
+  mutate(R_POSTOP_SSI=factor(R_POSTOP_SSI,levels = c(0:4),labels = c('No','Yes','Yes','Yes','Yes'))) %>%
+  mutate(POSTOP_SPINAL_ISCHEMIA=factor(POSTOP_SPINAL_ISCHEMIA,levels = c(0:2),
+                                       labels = c('No','Yes','Yes'))) %>%
+  mutate(RETX=factor(RETX,levels = c(0:2),labels = c('No','Yes','Yes'))) %>%
+  mutate(DC_STATUS=factor(DC_STATUS,levels = c(1:6),
+                          labels = c('Home','Rehab Unit','Nursing Home',
+                                     'Dead','Other Hospital','Homeless'))) %>%
+  mutate(R_LE_ISCH=factor(R_LE_ISCH,levels = c(0,1),labels = c('No','Yes'))) %>%
+  mutate(R_POSTOP_RENAL=factor(R_POSTOP_RENAL,levels = c(0:5),
+                               labels = c('No','Yes','Yes','Yes','Yes','Yes'))) %>%
+  mutate(R_RTOR=factor(R_RTOR,levels = c(0:5),labels = c('No','Yes','Yes','Yes','Yes','Yes')))
+
+
+## ------------- variables cleaning, volume variables----------
+TEVAR = TEVAR %>% 
+  mutate(REGIONID=factor(REGIONID)) %>%
+  mutate(CENTERID=factor(CENTERID)) %>%
+  mutate(PHYSICIANID=factor(PHYSICIANID))
+
+
+## ------------- variables labels----------
+#var.labels = c(AGE="Age (years)", AGECAT="Age (category)")
+#label(FBVAR) = as.list(var.labels[match(names(FBVAR), names(var.labels))])
+
+## ------------- select related variables----------
+FBVAR = TEVAR %>% 
+  select(PRESENTATION,
+         R_PREOP_AMBUL,AGE,AGECAT,GENDER,ETHNICITY,RACE,TRANSFER,PRIMARYINSURER,
+         LIVINGSTATUS,PREOP_FUNCSTATUS,PRIOR_CVD ,PRIOR_CAD,PRIOR_CHF,COPD,
+         DIABETES,PREOP_DIALYSIS,HTN,PREOP_SMOKING,PRIOR_CABG,PRIOR_PCI,PRIOR_ANEURREP,
+         STRESS,PREOP_CREAT,DC_ASA,DC_P2Y,DC_STATIN,R_CR_PRESENT,
+         PRIOR_AORSURG,PRIOR_AORSURG_OPENLOC1,PRIOR_AORSURG_OPENLOC2,PRIOR_AORSURG_OPENLOC3,
+         PRIOR_AORSURG_OPENLOC4,PRIOR_AORSURG_ENDOLOC1,PRIOR_AORSURG_ENDOLOC2,PRIOR_AORSURG_ENDOLOC3,
+         PRIOR_AORSURG_ENDOLOC4,PATHOLOGY,PREOP_MAXAAADIA,URGENCY,PATHOLOGY_ANEURYSM_TYPE,
+         PATHOLOGY_DISSECT_TYPE,PATHOLOGY_DISSECT_ONSET_DAYS,GENHIST,R_GENHIST,PROXZONE_DISEASE,
+         DISTZONE_DISEASE,ANESTHESIA,CONTRAST,EBL,FLUOROTIME,INTRAOP_PRBC,TOTALPROCTIME,IVUSTEE,
+         ACCESS_R,ACCESS_L,LRGST_SHEATH_SIZE_R,LRGST_SHEATH_SIZE_L,ARMNECK_ACCESS,ARMNECK_ACCESS_LOC,
+         AORDEV_NUM,AORDEV_CMOD,STAGEDAORTRT,DEV1_GTYPE,DEV2_GTYPE,DEV3_GTYPE,
+         DEV1_PROXZONE,DEV2_PROXZONE,DEV3_PROXZONE,DEV4_PROXZONE,DEV5_PROXZONE,DEV6_PROXZONE,
+         DEV1_DISTZONE,DEV2_DISTZONE,DEV3_DISTZONE,DEV4_DISTZONE,DEV5_DISTZONE,DEV6_DISTZONE,
+         ILIACDEV_END_R,ILIACDEV_END_L,BRANCH_STAGED,BRANCH_LSUB,BRANCH_CELIAC,BRANCH_SMA,
+         BRANCH_RRENAL,BRANCH_LRENAL,BRANCH_INNO_POST,BRANCH_LSUB_VERTPAT,ANESTHESIA_GEN_TIMEEXT,
+         POSTOP_SPINALDRAIN,R_CELIAC,R_DISTATTZONE,R_GDPROXIMAL,R_GRFTCONFIG,
+         R_LT_RENAL,R_PRATTZONE,R_RT_RENAL,R_SMA,R_SPINAL_DRAIN,
+         BRANCH_CELIAC_TRT,BRANCH_SMA_TRT,BRANCH_RRENAL_TRT,BRANCH_LRENAL_TRT,
+         DEAD,PROC_SURVIVALDAYS,TOTAL_LOS,POSTOP_LOS,AORDEV_TECHSUCC,CONVTOOPEN,
+         R_ENDOLEAK_AT_COMPLETION,BRANCH_LSUB_POST,BRANCH_CELIAC_POST,BRANCH_SMA_POST,
+         BRANCH_RRENAL_POST,BRANCH_LRENAL_POST,BRANCH_RCOMILI_POST,BRANCH_LCOMILI_POST,ICUSTAY,
+         POSTOP_PRBC,POSTOP_VASO,POSTOP_HIGHCREAT,POSTOP_COMPLICATIONS,R_POSTOP_HEMATOMA,
+         R_POSTOP_SITEOCC,POSTOP_MI,POSTOP_DYSRHYTHMIA,POSTOP_CHF,POSTOP_CEREBROSX,POSTOP_RESPIRATORY,
+         POSTOP_DIALYSIS,POSTOP_ARMEMBO,POSTOP_LEGEMBO,POSTOP_LEGCOMPART,POSTOP_INTISCH,
+         R_POSTOP_BOWELISCH,POSTOP_RENALISCH,R_POSTOP_SSI,POSTOP_SPINAL_ISCHEMIA,RETX,
+         DC_STATUS,R_LE_ISCH,R_POSTOP_RENAL,R_RTOR,
+         REGIONID,CENTERID,PHYSICIANID
+         )
+
+## ------------- store as new dataset 'FBVAR' to ensure easier access for modelling----------
+write.csv(FBVAR,path_lily[5])
 
 ```
 
-
-After excluding some data points, there are in total `r nrow(TEVAR)` objectives in the final overall dataset.
 
 ## population of interest: the asymptomatic and symptomatics groups. 
 
@@ -181,123 +487,69 @@ After excluding some data points, there are in total `r nrow(TEVAR)` objectives 
 table1(~  PRESENTATION, data = TEVAR)
 ```
 
-## Demographic history
+## Patient demographic and co-morbidities
 
-Under procedure tab, history and demographic variables
+`R_CR_PRESENT`: a lot of missing values, probably because Retired December 2014. 
 
-`R_PREOP_AMBUL`: Preop ambulatory status; 1 = Amb,2 = Amb w/ Assistance,3 = Wheelchair,4 = Bedridden
-
-`TRANSFER`: Transferred From?; 0 = No,1 = Hospital,2 = Rehab Unit
-
-`PRIMARYINSURER`: Primary Insurer; 1 = Medicare,2 = Medicaid,3 = Commercial,4 = Military/VA,5 = Non US Insurance,6 = Self Pay
-
-`HTCM`: Min/max range: 137 to 203 cm.
-
-`WTKG`: Min/max range: 18.1 to 227 kgs.
-
-*Preference, inch/cm, lb/kg?*
-
-`LIVINGSTATUS`: Living Status; 1 = Home,2 = Nursing home,3 = Homeless
-
-`PREOP_FUNCSTATUS`: Functional Status; 0 = Full,1 = Light work,2 = Self care,3 = Assisted care,4 = Bed bound
-
-`PREOP_DIALYSIS`: Dialysis status; 0 = No,1 = Functioning Transplant,2 = On Dialysis
+strange unit (normally 0.7 to 1.3 mg/dL )
 
 ```{r}
-## ------------- table: demographic----------
-table1(~ GENDER+ETHNICITY+RACE+HTCM+WTKG
-         | PRESENTATION, data = TEVAR,caption = 'Table 1- demographic')
+TEVAR %>%
+  filter(! is.na(TEVAR$R_CR_PRESENT)) %>%
+  select(R_CR_PRESENT) %>%table()
 ```
 
 
-## patient condition variables, pathway demographic:
+## Operative Variables
 
-Prior diseases history all changed to 0/1 scale. 
+`PATHOLOGY_ANEURYSM_TYPE`: 1 = Degenerative, fusiform,2 = Degenerative, saccular,3 = Anastomotic,4 = Prior trauma,5 = Intercostal or visceral patch
 
-`PRIOR_CVD`, `PRIOR_CAD`, `PRIOR_CHF`, `COPD`, `PRIOR_CABG`, `PRIOR_PCI`, `R_PRIOR_CABGPTCA`, `PRIOR_CEACAS`, `R_PRIOR_CEA`, `PRIOR_ANEURREP`, `PRIOR_BYPASS`, `PRIOR_PVI`.
+`PATHOLOGY_DISSECT_TYPE`: 1 = Acute, <= 30 days,2 = Chronic, >30 days
 
-*only use one variable for past heart disease? but forgot which to use*
+`PATHOLOGY_DISSECT_ONSET_DAYS`: Dissection Date minus Procedure Date  (negative means prior to the procedure)
 
-`DIABETES`,`PREOP_DIALYSIS`, `HTN`,`PREOP_SMOKING`, `STRESS`, `HEMO` (Pre op Hemoglobin:  range 4-20(g/dl)), 
+`GENHIST`, `R_GENHIST`: *merge and change to 0/1 scale?*
 
-*Which to include?*
+`DISTZONE_DISEASE`: Distal Zone of Disease. 0 = 0,1 = 1,2 = 2,3 = 3,4 = 4,5 = 5,6 = 6,7 = 7,8 = 8,9 = 9,10 = 10R,11 = 10L,12 = 10B,13 = 11R,14 = 11L,15 = 11B *exclude?*
 
-`PREOP_CREAT`, `PREOP_ASA`, `PREOP_P2Y`, `PREOP_STATIN`, `PREOP_BETABLOCKER`, `PREOP_ACE`, `PREOP_ANTICOAG`, 
+`IVUSTEE`: IVUS or TEE. 0 = No,1 = IVUS,2 = TEE,3 = Both,4 = No IVUS (retired since 04/20/2011),5 =  IVUS, but TEE unknown (retired since 04/20/2011) *how to merge*
 
-*Retired variables? Are the info transferred to new variables?*
+`DEV1_PROXZONE`: *exclude align with PROXZONE?*
+
+`DEV1_GRAFTDET`: *shouldn't be included in operative variables?* This field is required if Number of Aortic Devices has one of [1, 2, 3, 4, 5, 6].  To protect the identity of the device a random number is assigned. 
+
+*deal with 'conditional' variables*
+
+## Outcomes
+
+*long term outcomes vs procedure outcomes?*
+
+Primary (Long term) outcomes: `DEAD` and `PROC_SURVIVALDAYS`.
+
+*primary outcome: dead, survival days, or combine?*
+
+Cox model for estimation of hazard ratios.
+
+Secondary (Procedure) outcomes: others
+
+## Volume Variables 
+
+Volume Variables: `REGIONID`, `CENTERID`, `PHYSICIANID`
 
 ```{r}
-## ------------- table: patient condition (pathway demographics) ----------
-table1(~ R_PREOP_AMBUL+TRANSFER+PRIMARYINSURER+LIVINGSTATUS+PREOP_FUNCSTATUS+PREOP_DIALYSIS+
-         PRIOR_CVD+DIABETES+PREOP_DIALYSIS+HTN+PREOP_SMOKING+factor(STRESS)+HEMO+PREOP_CREAT
-         | PRESENTATION, data = TEVAR)
+center_vol = as.data.frame(TEVAR %>% select(CENTERID) %>% table())
+phys_vol = as.data.frame(TEVAR %>% select(PHYSICIANID) %>% table())
 ```
 
-## patient condition variables, pathway history:
+`r nlevels(factor(TEVAR$REGIONID))` regions, `r nlevels(factor(TEVAR$CENTERID))` centers, `r nlevels(factor(TEVAR$PHYSICIANID))` physicians. 
 
-7 variables related to details about `PRIOR_AORSURG`. *include?*
+Quantiles of centers' volume: `r quantile(center_vol[order(center_vol$Freq),]$Freq)`
 
-`PREOP_EF`: Ejection Fraction; 1 = <30%,2 = 30-50%,3 = >50%,4 = Not Done,5 = Unknown
+Quantiles of physicians' volume: `r quantile(phys_vol[order(phys_vol$Freq),]$Freq)`
 
-`PREOP_MAXAAADIA`: Maximum Aortic Diameter; *include?*
+*how to do cluster on centers and physicians? Dr. Dansey's instructions*
 
-`LEG_MOTOR_FUNCTION`: Leg Motor Function; 1 = Normal,2 = Mild weakness,3 = Moderate weakness,4 = Severe weakness,5 = Paralysis *include?*
-
-`DISTZONE_DISEASE`: Distal Zone of Disease *include?*
-
-many variables related to details about `PATHOLOGY`.  *include?*
-
-```{r }
-## ------------- table: patient condition anatomy ----------
-table1(~ factor(PREOP_EF)+PATHOLOGY+PREOP_MAXAAADIA+URGENCY+
-         factor(LEG_MOTOR_FUNCTION)+factor(DISTZONE_DISEASE)
-         | PRESENTATION, data = TEVAR,caption = 'Table 2- Anatomy detail ')
-```
-
-
-## other variables
-
-Surgery year would affect outcome, since surgeons got more familiar with the surgery.
-
-```{r}
-plot(DEAD~SURGYEAR,data=TEVAR)
-```
-
-
-## Outcome variables
-
-Primary outcomes: `DEAD` and `PROC_SURVIVALDAYS`.
-
-Secondary outcomes: `POSTOP_LOS`
-
-*other outcomes?*
-
-
-```{r}
-## ------------- table3: outcomes----------
-table1(~ DEAD+PROC_SURVIVALDAYS+POSTOP_LOS | PRESENTATION, data = TEVAR,caption='Table 3- outcomes ')
-
-## ------------- Survival curves----------
-
-```
-
-## Clustering variables:
-
-```{r}
-## ------------- clustering variables----------
-
-#TEVAR %>% select(REGIONID) %>% table() 
-#TEVAR %>% select(CENTERID) %>% table() 
-#TEVAR %>% select(PHYSICIANID) %>% table() 
-```
-
-`r nlevels(factor(TEVAR_PROC_07$REGIONID))` regions, `r nlevels(factor(TEVAR_PROC_07$CENTERID))` centers, `r nlevels(factor(TEVAR_PROC_07$PHYSICIANID))` physicians. 
-
-Most physicians only performed 1 or 2 procedures. Several performed over 100 procedures. Since the more surgeries a surgeon did, the more familiar he or she is. So we need to cluster on this.
-
-*how to do clustering on centers and physicians*
-
-*mean and median*: based on outliners?
+Report mean or median: based on outliners?
 
 \newpage
 ## Code Appendix
