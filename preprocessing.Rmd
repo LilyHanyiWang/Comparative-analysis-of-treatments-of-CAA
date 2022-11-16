@@ -102,8 +102,7 @@ n_occur <- data.frame(table(TEVAR$PATIENTID))
 n_occur[n_occur$Freq > 1,]%>%n_distinct
 TEVAR[TEVAR$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]%>%dplyr::select(PATIENTID, lrenal, rrenal, celiac, lsub,sma)
 
-TEVAR = TEVAR %>% filter(lrenal %in% c(1,2,3)|rrenal %in% c(1,2,3)|celiac %in% c(1,2,3)
-  |lsub %in% c(1,2,3)|sma %in% c(1,2,3))
+#TEVAR = TEVAR %>% filter(lrenal %in% c(1,2,3)|rrenal %in% c(1,2,3)|celiac %in% c(1,2,3)|lsub %in% c(1,2,3)|sma %in% c(1,2,3))
 
 ```
 
