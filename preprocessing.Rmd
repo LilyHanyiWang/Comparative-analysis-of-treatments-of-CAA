@@ -102,6 +102,9 @@ n_occur <- data.frame(table(TEVAR$PATIENTID))
 n_occur[n_occur$Freq > 1,]%>%n_distinct
 TEVAR[TEVAR$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]%>%dplyr::select(PATIENTID, lrenal, rrenal, celiac, lsub,sma)
 
+TEVAR = TEVAR %>% filter(lrenal %in% c(1,2,3)|rrenal %in% c(1,2,3)|celiac %in% c(1,2,3)
+  |lsub %in% c(1,2,3)|sma %in% c(1,2,3))
+
 ```
 
 Variables that exists in both LTF and PROC datasets are: `r colnames(TEVAR_PROC)[colnames(TEVAR_PROC) %in% colnames(TEVAR_LTF)]`. Merge by these variables.
@@ -118,6 +121,7 @@ Exclusion criteria:
 - `URGENCY`: exclude rupture. (elective is same to asymptomatic)
 
 - `PROXZONE_DISEASE`: exclude 0 and 1 
+- `DISTZONE_DISEASE`: exclude 0
 
 ```{r}
 TEVAR = TEVAR %>% select(CENTERID,DEAD,REGIONID,PHYSICIANID,R_PREOP_AMBUL,AGE,AGECAT,TOTAL_LOS,POSTOP_LOS,
@@ -155,7 +159,8 @@ TEVAR = TEVAR %>%
   filter(PRESENTATION !=2) %>%
   filter(PATHOLOGY %in% c(1,2,3,5,6,7)) %>%
   filter(URGENCY %in% c(1,2,3)) %>%
-  filter(PROXZONE_DISEASE %in% c(2,3,4,5,6,7,8,9))
+  filter(PROXZONE_DISEASE %in% c(2,3,4,5,6,7,8,9))%>%
+  filter(DISTZONE_DISEASE %in% c(1,2,3,4,5,6,7,8,9))
 
 ## ------------- data cleaning----------
 TEVAR = TEVAR %>% 
@@ -196,8 +201,6 @@ TEVAR = TEVAR %>%
   mutate(PREOP_DIALYSIS=factor(PREOP_DIALYSIS,levels=c(0,1,2),labels=c('No','Yes','Yes'))) %>%
   mutate(HTN=factor(HTN,levels = c(0,1,2,3),labels = c('No','Yes','Yes','Yes'))) %>%
   mutate(PREOP_SMOKING=factor(PREOP_SMOKING,levels=c(0,1,2),labels=c('No','Yes','Yes')))
-
-
 
 ```
 
@@ -290,7 +293,7 @@ table1(~ +PATHOLOGY+PREOP_MAXAAADIA+URGENCY#+factor(PREOP_EF)+factor(LEG_MOTOR_F
 Surgery year would affect outcome, since surgeons got more familiar with the surgery.
 
 ```{r}
-plot(DEAD~SURGYEAR,data=TEVAR)
+#plot(DEAD~SURGYEAR,data=TEVAR)
 ```
 
 
