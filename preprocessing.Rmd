@@ -73,43 +73,9 @@ TEVAR_PROC <-rbind(TEVAR_PROC_07[! TEVAR_PROC_07$PATIENTID  %in% TEVAR_PROC_09$P
 TEVAR <- merge(TEVAR_LTF,TEVAR_PROC, all = TRUE,
                by=c("PATIENTID","PRIMPROCID","DEAD","PROC_SURVIVALDAYS","IDE_OTHER"))
 
-
-# FBVAR
-# 0"0.None" 1"1.Scallop/Fen/Branch" 2"2.Occluded/Covered" 3"3.Chimney"
-TEVAR<-TEVAR %>% mutate(lrenal = ifelse(BRANCH_LRENAL_TRT %in% c(0,6,7), 0, 
-                                  ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
-                                        ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
-                                               ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
-                              rrenal = ifelse(BRANCH_RRENAL_TRT %in% c(0,6,7), 0, 
-                                  ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
-                                        ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
-                                               ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
-                              sma = ifelse(BRANCH_SMA_TRT %in% c(0,6,7), 0, 
-                                  ifelse(BRANCH_SMA_TRT %in% c(9,10,11,12,13,14), 1,
-                                        ifelse(BRANCH_SMA_TRT %in% c(1,2,3,4), 2,
-                                               ifelse(BRANCH_SMA_TRT == 8,3,NA)))),
-                              celiac = ifelse(BRANCH_CELIAC_TRT %in% c(0,6,7), 0, 
-                                  ifelse(BRANCH_CELIAC_TRT %in% c(9,10,11,12,13,14), 1,
-                                        ifelse(BRANCH_CELIAC_TRT %in% c(1,2,3,4), 2,
-                                               ifelse(BRANCH_CELIAC_TRT == 8,3,NA)))),
-                              lsub = ifelse(BRANCH_LSUB_TRT %in% c(0,6,7), 0, 
-                                  ifelse(BRANCH_LSUB_TRT %in% c(9,10,11,12,13,14), 1,
-                                        ifelse(BRANCH_LSUB_TRT %in% c(1,2,3,4), 2,
-                                               ifelse(BRANCH_LSUB_TRT == 8,3,NA)))),
-
-                              )
-
 # diagnosing duplicate id, decide which record to keep?
 n_occur <- data.frame(table(TEVAR$PATIENTID))
-<<<<<<< HEAD
 #n_occur[n_occur$Freq > 1,]%>%n_distinct
-#TEVAR[TEVAR$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]%>%select(PATIENTID, lrenal,rrenal, celiac, lsub,sma)
-=======
-n_occur[n_occur$Freq > 1,]%>%n_distinct
-TEVAR[TEVAR$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]%>%dplyr::select(PATIENTID, lrenal, rrenal, celiac, lsub,sma)
-
-#TEVAR = TEVAR %>% filter(lrenal %in% c(1,2,3)|rrenal %in% c(1,2,3)|celiac %in% c(1,2,3)|lsub %in% c(1,2,3)|sma %in% c(1,2,3))
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
 
 ```
 
@@ -133,50 +99,16 @@ Exclusion criteria:
 - `PROXZONE_DISEASE < DISTZONE_DISEASE`: disease starting point should be earlier than ending point.
 
 Wrong data points with distal zone < proximal zone:
+
 ```{r}
-<<<<<<< HEAD
 TEVAR %>% filter(DISTZONE_DISEASE < PROXZONE_DISEASE) %>%
   select(PATIENTID,PROXZONE_DISEASE,DISTZONE_DISEASE)
 
-## ------------- exclusion----------
-=======
-TEVAR = TEVAR %>% select(CENTERID,DEAD,REGIONID,PHYSICIANID,R_PREOP_AMBUL,AGE,AGECAT,TOTAL_LOS,POSTOP_LOS,
-                         GENDER,ETHNICITY,RACE,TRANSFER,PRIMARYINSURER,LIVINGSTATUS,PREOP_FUNCSTATUS,
-                         PRIOR_CVD,PRIOR_CAD,PRIOR_CHF,COPD,DIABETES,PREOP_DIALYSIS,HTN,PREOP_SMOKING,
-                         PRIOR_CABG,PRIOR_PCI,PRIOR_ANEURREP,STRESS,PREOP_CREAT,PRIOR_AORSURG,
-                         PRIOR_AORSURG_OPENLOC1,PRIOR_AORSURG_OPENLOC2,PRIOR_AORSURG_OPENLOC3,
-                         PRIOR_AORSURG_OPENLOC4,PRIOR_AORSURG_ENDOLOC1,PRIOR_AORSURG_ENDOLOC2,
-                         PRIOR_AORSURG_ENDOLOC3,PRIOR_AORSURG_ENDOLOC4,PATHOLOGY,PREOP_MAXAAADIA,
-                         PRESENTATION,URGENCY,PATHOLOGY_ANEURYSM_TYPE,PATHOLOGY_DISSECT_TYPE,
-                         PATHOLOGY_DISSECT_ONSET_DAYS,GENHIST,R_GENHIST,PROXZONE_DISEASE,
-                         DISTZONE_DISEASE,ANESTHESIA,CONTRAST,EBL,FLUOROTIME,INTRAOP_PRBC,
-                         TOTALPROCTIME,IVUSTEE,ACCESS_R,ACCESS_L,LRGST_SHEATH_SIZE_R,
-                         LRGST_SHEATH_SIZE_L,ARMNECK_ACCESS,ARMNECK_ACCESS_LOC,AORDEV_NUM,
-                         AORDEV_CMOD,AORDEV_TECHSUCC,CONVTOOPEN,R_ENDOLEAK_AT_COMPLETION,
-                         STAGEDAORTRT,DEV1_GTYPE,DEV2_GTYPE,DEV3_GTYPE,DEV1_PROXZONE,
-                         DEV2_PROXZONE,DEV3_PROXZONE,DEV4_PROXZONE,DEV5_PROXZONE,DEV6_PROXZONE,
-                         DEV1_DISTZONE,DEV2_DISTZONE,DEV3_DISTZONE,DEV4_DISTZONE,DEV5_DISTZONE,
-                         DEV6_DISTZONE,DEV1_GRAFTDET,ILIACDEV_END_R,ILIACDEV_END_L,BRANCH_STAGED
-                         ,BRANCH_LSUB,BRANCH_CELIAC,BRANCH_SMA,BRANCH_RRENAL,BRANCH_LRENAL,
-                         BRANCH_INNO_POST,BRANCH_LSUB_POST,BRANCH_CELIAC_POST,BRANCH_SMA_POST,
-                         BRANCH_RRENAL_POST,BRANCH_LRENAL_POST,BRANCH_RCOMILI_POST,
-                         BRANCH_LCOMILI_POST,BRANCH_LSUB_VERTPAT,ANESTHESIA_GEN_TIMEEXT,ICUSTAY,
-                         POSTOP_PRBC,POSTOP_SPINALDRAIN,POSTOP_VASO,POSTOP_HIGHCREAT,
-                         POSTOP_COMPLICATIONS,R_POSTOP_HEMATOMA,R_POSTOP_SITEOCC,POSTOP_MI,
-                         POSTOP_DYSRHYTHMIA,POSTOP_CHF,POSTOP_CEREBROSX,POSTOP_RESPIRATORY,
-                         POSTOP_DIALYSIS,POSTOP_ARMEMBO,POSTOP_LEGEMBO,POSTOP_LEGCOMPART,
-                         POSTOP_INTISCH,R_POSTOP_BOWELISCH,POSTOP_RENALISCH,R_POSTOP_SSI,
-                         POSTOP_SPINAL_ISCHEMIA,RETX,DC_STATUS,DC_ASA,DC_P2Y,DC_STATIN,R_CELIAC,
-                         R_CR_PRESENT,R_DISTATTZONE,R_GDPROXIMAL,R_GRFTCONFIG,R_LE_ISCH,R_LT_RENAL,
-                         R_PRATTZONE,R_POSTOP_RENAL,R_RT_RENAL,R_RTOR,R_SMA,R_SPINAL_DRAIN,
-                         BRANCH_RRENAL_TRT,BRANCH_LRENAL_TRT)
 ## ------------- inclusion and exclusion----------
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
 TEVAR = TEVAR %>% 
   filter(PRESENTATION !=2) %>%
   filter(PATHOLOGY %in% c(1,2,3,5,6,7)) %>%
   filter(URGENCY %in% c(1,2,3)) %>%
-<<<<<<< HEAD
   filter(PROXZONE_DISEASE %in% c(2,3,4,5,6,7,8,9)) %>%
   filter(DISTZONE_DISEASE > PROXZONE_DISEASE)
 
@@ -186,22 +118,18 @@ n_occur <- data.frame(table(TEVAR$PATIENTID))
 After exclsion, there are in total `r nrow(TEVAR)` objectives in the final `TEVAR` dataset. `r n_occur[n_occur$Freq > 1,]%>%n_distinct` participants have more than one records in this dataset.
 
 Data cleaning: comorbidities changed to No/Yes scale.
-=======
-  filter(PROXZONE_DISEASE %in% c(2,3,4,5,6,7,8,9))%>%
-  filter(DISTZONE_DISEASE %in% c(1,2,3,4,5,6,7,8,9))
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
+
+What is the point of filtering `BRANCH_POST`.
+*Filter `BRANCH_POST` based on the same criteria?*
 
 ```{r}
 ## ------------- variables cleaning, patient demographic and co-morbidities----------
 TEVAR = TEVAR %>% 
-<<<<<<< HEAD
-  mutate(SURGYEAR=factor(SURGYEAR)) %>%
   mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
                                labels = c('Asymptomatic','Symptomatic')))
 
 
 TEVAR = TEVAR %>% 
-=======
   mutate(DEAD=factor(DEAD)) %>%
   mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
                                labels = c('Asymptomatic','Symptomatic'))) %>%
@@ -215,7 +143,6 @@ TEVAR = TEVAR %>%
   mutate(PATHOLOGY=factor(PATHOLOGY,levels=c(1,2,3,5,6,7),
                           labels = c('Aneurysm','Dissection','Aneurysm from dissection','PAU',
                                      'IMH','PAU with IMH'))) %>%
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
   mutate(R_PREOP_AMBUL = factor(R_PREOP_AMBUL,levels = c(1,2,3,4),
                                 labels=c("Amb","Amb w/ Assistance","Wheelchair","Bedridden"))) %>%
   mutate(AGECAT = factor(AGECAT,levels = c(1,2,3,4,5,6,7),
@@ -257,8 +184,6 @@ TEVAR = TEVAR %>%
   mutate(DC_P2Y = factor(DC_P2Y,levels =c(0,1,2,3,4,5,6,7),
                          labels = c('No','Yes','Yes','Yes','Yes','Yes','No','No'))) %>% 
   mutate(DC_STATIN = factor(DC_STATIN,levels = c(0,1,2,3),labels = c('No','Yes','No','No')))
-
-<<<<<<< HEAD
 
 ## ------------- variables cleaning, operative variables----------
 
@@ -403,35 +328,38 @@ TEVAR = TEVAR %>%
                                     'Fenestrated Stentgraft Branch (Branched TEVAR)',
                                     'Side-arm Stent-graft Branch'))) %>%
   mutate(R_SPINAL_DRAIN=factor(R_SPINAL_DRAIN,levels=c(0,1,2),
-                           labels=c('No Drain','Pre-op Drain','Post-op Drain'))) %>%
-  mutate(BRANCH_CELIAC_TRT=factor(BRANCH_CELIAC_TRT,levels=c(0:17),
-                           labels=c('None','Purposely covered','Unintentionally covered',
-                                    'Occluded - coil','Occluded - plug','
-                                    Occluded - open','Stent','Stent-graft','Chimney',
-                                    'Scallop','Stented Scallop','Fenestration','Stented-fen',
-                                    'Fen branch','Side-arm branch',
-                                    'Surgical bypass','Thromboembolectomy','Iliac Device'))) %>%
-  mutate(BRANCH_SMA_TRT=factor(BRANCH_SMA_TRT,levels=c(0:17),
-                           labels=c('None','Purposely covered','Unintentionally covered',
-                                    'Occluded - coil','Occluded - plug','
-                                    Occluded - open','Stent','Stent-graft','Chimney',
-                                    'Scallop','Stented Scallop','Fenestration','Stented-fen',
-                                    'Fen branch','Side-arm branch',
-                                    'Surgical bypass','Thromboembolectomy','Iliac Device'))) %>%
-  mutate(BRANCH_RRENAL_TRT=factor(BRANCH_RRENAL_TRT,levels=c(0:17),
-                           labels=c('None','Purposely covered','Unintentionally covered',
-                                    'Occluded - coil','Occluded - plug','
-                                    Occluded - open','Stent','Stent-graft','Chimney',
-                                    'Scallop','Stented Scallop','Fenestration','Stented-fen',
-                                    'Fen branch','Side-arm branch',
-                                    'Surgical bypass','Thromboembolectomy','Iliac Device'))) %>%
-  mutate(BRANCH_LRENAL_TRT=factor(BRANCH_LRENAL_TRT,levels=c(0:17),
-                           labels=c('None','Purposely covered','Unintentionally covered',
-                                    'Occluded - coil','Occluded - plug','
-                                    Occluded - open','Stent','Stent-graft','Chimney',
-                                    'Scallop','Stented Scallop','Fenestration','Stented-fen',
-                                    'Fen branch','Side-arm branch',
-                                    'Surgical bypass','Thromboembolectomy','Iliac Device')))
+                           labels=c('No Drain','Pre-op Drain','Post-op Drain')))
+
+
+# 0"0.None" 1"1.Scallop/Fen/Branch" 2"2.Occluded/Covered" 3"3.Chimney"
+TEVAR<-TEVAR %>% mutate(lrenal = ifelse(BRANCH_LRENAL_TRT %in% c(0,6,7), 0, 
+                                        ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
+                                               ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
+                                                      ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
+                        rrenal = ifelse(BRANCH_RRENAL_TRT %in% c(0,6,7), 0, 
+                                        ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
+                                               ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
+                                                      ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
+                        sma = ifelse(BRANCH_SMA_TRT %in% c(0,6,7), 0, 
+                                     ifelse(BRANCH_SMA_TRT %in% c(9,10,11,12,13,14), 1,
+                                            ifelse(BRANCH_SMA_TRT %in% c(1,2,3,4), 2,
+                                                   ifelse(BRANCH_SMA_TRT == 8,3,NA)))),
+                        celiac = ifelse(BRANCH_CELIAC_TRT %in% c(0,6,7), 0, 
+                                        ifelse(BRANCH_CELIAC_TRT %in% c(9,10,11,12,13,14), 1,
+                                               ifelse(BRANCH_CELIAC_TRT %in% c(1,2,3,4), 2,
+                                                      ifelse(BRANCH_CELIAC_TRT == 8,3,NA)))),
+                        lsub = ifelse(BRANCH_LSUB_TRT %in% c(0,6,7), 0, 
+                                      ifelse(BRANCH_LSUB_TRT %in% c(9,10,11,12,13,14), 1,
+                                             ifelse(BRANCH_LSUB_TRT %in% c(1,2,3,4), 2,
+                                                    ifelse(BRANCH_LSUB_TRT == 8,3,NA)))),
+                        )
+
+# drop missing data
+TEVAR = TEVAR %>% filter(lrenal %in% c(1,2,3)
+                         |rrenal %in% c(1,2,3)
+                         |celiac %in% c(1,2,3)
+                         |lsub %in% c(1,2,3)
+                         |sma %in% c(1,2,3))
 
 
 ## ------------- variables cleaning, outcomes----------
@@ -502,57 +430,68 @@ TEVAR = TEVAR %>%
   mutate(PHYSICIANID=factor(PHYSICIANID))
 
 
+
+```
+
+
+```{r}
+
+## ------------- select only variables we need----------
+FBVAR = TEVAR %>% select(
+  # population of interest
+  PRESENTATION,
+  # Patient demographic and co-morbidities
+  R_PREOP_AMBUL,AGE,AGECAT,GENDER,ETHNICITY,RACE,TRANSFER,PRIMARYINSURER,
+  LIVINGSTATUS,PREOP_FUNCSTATUS,PRIOR_CVD,PRIOR_CAD,PRIOR_CHF,COPD,DIABETES,
+  PREOP_DIALYSIS,HTN,PREOP_SMOKING,PRIOR_CABG,PRIOR_PCI,PRIOR_ANEURREP,STRESS,
+  PREOP_CREAT,DC_ASA,DC_P2Y,DC_STATIN,R_CR_PRESENT,
+  lrenal,rrenal,sma,celiac,lsub,
+  #operative variables
+  PRIOR_AORSURG,PRIOR_AORSURG_OPENLOC1,PRIOR_AORSURG_OPENLOC2,PRIOR_AORSURG_OPENLOC3,
+  PRIOR_AORSURG_OPENLOC4,PRIOR_AORSURG_ENDOLOC1,PRIOR_AORSURG_ENDOLOC2,
+  PRIOR_AORSURG_ENDOLOC3,PRIOR_AORSURG_ENDOLOC4,PATHOLOGY,PREOP_MAXAAADIA,URGENCY,
+  PATHOLOGY_ANEURYSM_TYPE,PATHOLOGY_DISSECT_TYPE,PATHOLOGY_DISSECT_ONSET_DAYS,
+  Genetic,
+  PROXZONE_DISEASE,DISTZONE_DISEASE,ANESTHESIA,CONTRAST,EBL,FLUOROTIME,INTRAOP_PRBC,
+  TOTALPROCTIME,IVUSTEE,ACCESS_R,ACCESS_L,LRGST_SHEATH_SIZE_R,
+  LRGST_SHEATH_SIZE_L,ARMNECK_ACCESS,ARMNECK_ACCESS_LOC,AORDEV_NUM,
+  AORDEV_CMOD,AORDEV_TECHSUCC,CONVTOOPEN,R_ENDOLEAK_AT_COMPLETION,
+  STAGEDAORTRT,DEV1_GTYPE,DEV2_GTYPE,DEV3_GTYPE,DEV1_PROXZONE,
+  DEV2_PROXZONE,DEV3_PROXZONE,DEV4_PROXZONE,DEV5_PROXZONE,DEV6_PROXZONE,
+  DEV1_DISTZONE,DEV2_DISTZONE,DEV3_DISTZONE,DEV4_DISTZONE,DEV5_DISTZONE,
+  DEV6_DISTZONE,DEV1_GRAFTDET,ILIACDEV_END_R,ILIACDEV_END_L,BRANCH_STAGED,BRANCH_LSUB,
+  BRANCH_CELIAC,BRANCH_SMA,BRANCH_RRENAL,BRANCH_LRENAL,
+  BRANCH_INNO_POST,BRANCH_LSUB_POST,BRANCH_CELIAC_POST,BRANCH_SMA_POST,
+  BRANCH_RRENAL_POST,BRANCH_LRENAL_POST,BRANCH_RCOMILI_POST,BRANCH_LCOMILI_POST,
+  BRANCH_LSUB_VERTPAT,ANESTHESIA_GEN_TIMEEXT,ICUSTAY,POSTOP_PRBC,POSTOP_SPINALDRAIN,
+  POSTOP_VASO,POSTOP_HIGHCREAT,POSTOP_COMPLICATIONS,R_POSTOP_HEMATOMA,R_POSTOP_SITEOCC,
+  POSTOP_MI,POSTOP_DYSRHYTHMIA,POSTOP_CHF,POSTOP_CEREBROSX,POSTOP_RESPIRATORY,
+  POSTOP_DIALYSIS,POSTOP_ARMEMBO,POSTOP_LEGEMBO,POSTOP_LEGCOMPART,POSTOP_INTISCH,
+  R_POSTOP_BOWELISCH,POSTOP_RENALISCH,R_POSTOP_SSI,POSTOP_SPINAL_ISCHEMIA,RETX,DC_STATUS,
+  DC_ASA,DC_P2Y,DC_STATIN,R_CELIAC,R_CR_PRESENT,R_DISTATTZONE,R_GDPROXIMAL,R_GRFTCONFIG,
+  R_LE_ISCH,R_LT_RENAL,R_PRATTZONE,R_POSTOP_RENAL,R_RT_RENAL,R_RTOR,R_SMA,R_SPINAL_DRAIN,
+  # outcomes
+  DEAD,PROC_SURVIVALDAYS,TOTAL_LOS,POSTOP_LOS,AORDEV_TECHSUCC,CONVTOOPEN,
+  R_ENDOLEAK_AT_COMPLETION,BRANCH_LSUB_POST,BRANCH_CELIAC_POST,BRANCH_SMA_POST,
+  BRANCH_RRENAL_POST,BRANCH_LRENAL_POST,BRANCH_RCOMILI_POST,BRANCH_LCOMILI_POST,ICUSTAY,
+  POSTOP_PRBC,POSTOP_VASO,POSTOP_HIGHCREAT,POSTOP_COMPLICATIONS,R_POSTOP_HEMATOMA,
+  R_POSTOP_SITEOCC,POSTOP_MI,POSTOP_DYSRHYTHMIA,POSTOP_CHF,POSTOP_CEREBROSX,POSTOP_RESPIRATORY,
+  POSTOP_DIALYSIS,POSTOP_ARMEMBO,POSTOP_LEGEMBO,POSTOP_LEGCOMPART,POSTOP_INTISCH,
+  R_POSTOP_BOWELISCH,POSTOP_RENALISCH,R_POSTOP_SSI,POSTOP_SPINAL_ISCHEMIA,RETX,
+  DC_STATUS,R_LE_ISCH,R_POSTOP_RENAL,R_RTOR,
+  # clustering
+  REGIONID,CENTERID,PHYSICIANID
+  )
+
 ## ------------- variables labels----------
 #var.labels = c(AGE="Age (years)", AGECAT="Age (category)")
 #label(FBVAR) = as.list(var.labels[match(names(FBVAR), names(var.labels))])
 
-## ------------- select related variables----------
-FBVAR = TEVAR %>% 
-  select(PRESENTATION,
-         R_PREOP_AMBUL,AGE,AGECAT,GENDER,ETHNICITY,RACE,TRANSFER,PRIMARYINSURER,
-         LIVINGSTATUS,PREOP_FUNCSTATUS,PRIOR_CVD ,PRIOR_CAD,PRIOR_CHF,COPD,
-         DIABETES,PREOP_DIALYSIS,HTN,PREOP_SMOKING,PRIOR_CABG,PRIOR_PCI,PRIOR_ANEURREP,
-         STRESS,PREOP_CREAT,DC_ASA,DC_P2Y,DC_STATIN,R_CR_PRESENT,
-         PRIOR_AORSURG,PRIOR_AORSURG_OPENLOC1,PRIOR_AORSURG_OPENLOC2,PRIOR_AORSURG_OPENLOC3,
-         PRIOR_AORSURG_OPENLOC4,PRIOR_AORSURG_ENDOLOC1,PRIOR_AORSURG_ENDOLOC2,PRIOR_AORSURG_ENDOLOC3,
-         PRIOR_AORSURG_ENDOLOC4,PATHOLOGY,PREOP_MAXAAADIA,URGENCY,PATHOLOGY_ANEURYSM_TYPE,
-         PATHOLOGY_DISSECT_TYPE,PATHOLOGY_DISSECT_ONSET_DAYS,GENHIST,R_GENHIST,PROXZONE_DISEASE,
-         DISTZONE_DISEASE,ANESTHESIA,CONTRAST,EBL,FLUOROTIME,INTRAOP_PRBC,TOTALPROCTIME,IVUSTEE,
-         ACCESS_R,ACCESS_L,LRGST_SHEATH_SIZE_R,LRGST_SHEATH_SIZE_L,ARMNECK_ACCESS,ARMNECK_ACCESS_LOC,
-         AORDEV_NUM,AORDEV_CMOD,STAGEDAORTRT,DEV1_GTYPE,DEV2_GTYPE,DEV3_GTYPE,
-         DEV1_PROXZONE,DEV2_PROXZONE,DEV3_PROXZONE,DEV4_PROXZONE,DEV5_PROXZONE,DEV6_PROXZONE,
-         DEV1_DISTZONE,DEV2_DISTZONE,DEV3_DISTZONE,DEV4_DISTZONE,DEV5_DISTZONE,DEV6_DISTZONE,
-         ILIACDEV_END_R,ILIACDEV_END_L,BRANCH_STAGED,BRANCH_LSUB,BRANCH_CELIAC,BRANCH_SMA,
-         BRANCH_RRENAL,BRANCH_LRENAL,BRANCH_INNO_POST,BRANCH_LSUB_VERTPAT,ANESTHESIA_GEN_TIMEEXT,
-         POSTOP_SPINALDRAIN,R_CELIAC,R_DISTATTZONE,R_GDPROXIMAL,R_GRFTCONFIG,
-         R_LT_RENAL,R_PRATTZONE,R_RT_RENAL,R_SMA,R_SPINAL_DRAIN,
-         BRANCH_CELIAC_TRT,BRANCH_SMA_TRT,BRANCH_RRENAL_TRT,BRANCH_LRENAL_TRT,
-         DEAD,PROC_SURVIVALDAYS,TOTAL_LOS,POSTOP_LOS,AORDEV_TECHSUCC,CONVTOOPEN,
-         R_ENDOLEAK_AT_COMPLETION,BRANCH_LSUB_POST,BRANCH_CELIAC_POST,BRANCH_SMA_POST,
-         BRANCH_RRENAL_POST,BRANCH_LRENAL_POST,BRANCH_RCOMILI_POST,BRANCH_LCOMILI_POST,ICUSTAY,
-         POSTOP_PRBC,POSTOP_VASO,POSTOP_HIGHCREAT,POSTOP_COMPLICATIONS,R_POSTOP_HEMATOMA,
-         R_POSTOP_SITEOCC,POSTOP_MI,POSTOP_DYSRHYTHMIA,POSTOP_CHF,POSTOP_CEREBROSX,POSTOP_RESPIRATORY,
-         POSTOP_DIALYSIS,POSTOP_ARMEMBO,POSTOP_LEGEMBO,POSTOP_LEGCOMPART,POSTOP_INTISCH,
-         R_POSTOP_BOWELISCH,POSTOP_RENALISCH,R_POSTOP_SSI,POSTOP_SPINAL_ISCHEMIA,RETX,
-         DC_STATUS,R_LE_ISCH,R_POSTOP_RENAL,R_RTOR,
-         REGIONID,CENTERID,PHYSICIANID
-         )
 
 ## ------------- store as new dataset 'FBVAR' to ensure easier access for modelling----------
 write.csv(FBVAR,path_lily[5])
-=======
-```
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
-
 ```
 
-
-## population of interest: the asymptomatic and symptomatics groups. 
-
-```{r}
-## ------------- population of interest ----------
-table1(~  PRESENTATION, data = TEVAR)
-```
 
 ## Patient demographic and co-morbidities
 
@@ -561,59 +500,23 @@ table1(~  PRESENTATION, data = TEVAR)
 strange unit (normally 0.7 to 1.3 mg/dL )
 
 ```{r}
-<<<<<<< HEAD
 TEVAR %>%
   filter(! is.na(TEVAR$R_CR_PRESENT)) %>%
   select(R_CR_PRESENT) %>%table()
-=======
-## ------------- table: demographic----------
-table1(~ GENDER+ETHNICITY+RACE#+HTCM+WTKG
-         | PRESENTATION, data = TEVAR,caption = 'Table 1- demographic')
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
 ```
 
 
 ## Operative Variables
 
-`PATHOLOGY_ANEURYSM_TYPE`: 1 = Degenerative, fusiform,2 = Degenerative, saccular,3 = Anastomotic,4 = Prior trauma,5 = Intercostal or visceral patch
-
-`PATHOLOGY_DISSECT_TYPE`: 1 = Acute, <= 30 days,2 = Chronic, >30 days
-
-<<<<<<< HEAD
-`PATHOLOGY_DISSECT_ONSET_DAYS`: Dissection Date minus Procedure Date  (negative means prior to the procedure)
-=======
-```{r}
-## ------------- table: patient condition (pathway demographics) ----------
-table1(~ R_PREOP_AMBUL+TRANSFER+PRIMARYINSURER+LIVINGSTATUS+PREOP_FUNCSTATUS+PREOP_DIALYSIS+
-         PRIOR_CVD+DIABETES+PREOP_DIALYSIS+HTN+PREOP_SMOKING+factor(STRESS)+PREOP_CREAT#+HEMO
-         | PRESENTATION, data = TEVAR)
-```
-
-## patient condition variables, pathway history:
-
 7 variables related to details about `PRIOR_AORSURG`. *include?*
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
 
 `GENHIST`, `R_GENHIST`: *merge and change to 0/1 scale?*
 
-`DISTZONE_DISEASE`: Distal Zone of Disease. 0 = 0,1 = 1,2 = 2,3 = 3,4 = 4,5 = 5,6 = 6,7 = 7,8 = 8,9 = 9,10 = 10R,11 = 10L,12 = 10B,13 = 11R,14 = 11L,15 = 11B *exclude?*
-
-`IVUSTEE`: IVUS or TEE. 0 = No,1 = IVUS,2 = TEE,3 = Both,4 = No IVUS (retired since 04/20/2011),5 =  IVUS, but TEE unknown (retired since 04/20/2011) *how to merge*
-
 `DEV1_PROXZONE`: *exclude align with PROXZONE?*
 
-<<<<<<< HEAD
 `DEV1_GRAFTDET`: *shouldn't be included in operative variables?* This field is required if Number of Aortic Devices has one of [1, 2, 3, 4, 5, 6].  To protect the identity of the device a random number is assigned. 
-=======
-many variables related to details about `PATHOLOGY`.  *include?*
 
-```{r }
-## ------------- table: patient condition anatomy ----------
-table1(~ +PATHOLOGY+PREOP_MAXAAADIA+URGENCY#+factor(PREOP_EF)+factor(LEG_MOTOR_FUNCTION)
-       +factor(DISTZONE_DISEASE)
-         | PRESENTATION, data = TEVAR,caption = 'Table 2- Anatomy detail ')
-```
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
+many variables related to details about `PATHOLOGY`.  *include?*
 
 *deal with 'conditional' variables*
 
@@ -621,15 +524,7 @@ table1(~ +PATHOLOGY+PREOP_MAXAAADIA+URGENCY#+factor(PREOP_EF)+factor(LEG_MOTOR_F
 
 *long term outcomes vs procedure outcomes?*
 
-<<<<<<< HEAD
 Primary (Long term) outcomes: `DEAD` and `PROC_SURVIVALDAYS`.
-=======
-```{r}
-#plot(DEAD~SURGYEAR,data=TEVAR)
-```
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
-
-*primary outcome: dead, survival days, or combine?*
 
 Cox model for estimation of hazard ratios.
 
@@ -638,26 +533,6 @@ Secondary (Procedure) outcomes: others
 ## Volume Variables 
 
 Volume Variables: `REGIONID`, `CENTERID`, `PHYSICIANID`
-
-```{r}
-<<<<<<< HEAD
-center_vol = as.data.frame(TEVAR %>% select(CENTERID) %>% table())
-phys_vol = as.data.frame(TEVAR %>% select(PHYSICIANID) %>% table())
-=======
-## ------------- table3: outcomes----------
-table1(~ DEAD#+PROC_SURVIVALDAYS
-       +POSTOP_LOS | PRESENTATION, data = TEVAR,caption='Table 3- outcomes ')
-
-## ------------- Survival curves----------
-
->>>>>>> 16c7849d9c05de69b17f96c4d53c3a26f010fe2d
-```
-
-`r nlevels(factor(TEVAR$REGIONID))` regions, `r nlevels(factor(TEVAR$CENTERID))` centers, `r nlevels(factor(TEVAR$PHYSICIANID))` physicians. 
-
-Quantiles of centers' volume: `r quantile(center_vol[order(center_vol$Freq),]$Freq)`
-
-Quantiles of physicians' volume: `r quantile(phys_vol[order(phys_vol$Freq),]$Freq)`
 
 *how to do cluster on centers and physicians? Dr. Dansey's instructions*
 
