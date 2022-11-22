@@ -1,5 +1,5 @@
 ---
-title: "Data Preprocessing on VQI TEVAR Dataset"
+title: "Data Preprocessing for the VQI TEVAR Dataset"
 author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
 output: pdf_document
 ---
@@ -124,11 +124,17 @@ What is the point of filtering `BRANCH_POST`.
 
 ```{r}
 ## ------------- variables cleaning, patient demographic and co-morbidities----------
-TEVAR = TEVAR %>% 
-  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
-                               labels = c('Asymptomatic','Symptomatic')))
-
-
+TEVAR = TEVAR %>% mutate(
+  #SURGYEAR=factor(SURGYEAR)
+  PRESENTATION = factor(PRESENTATION,levels = c(0,1),labels = c('Asymptomatic','Symptomatic')),
+  extent = ifelse((PROXZONE_DISEASE %in% c(2,3,4,5)) & DISTZONE_DISEASE<6, 1,
+                  ifelse((PROXZONE_DISEASE %in% c(2,3)) & DISTZONE_DISEASE>=8, 2,
+                         ifelse((PROXZONE_DISEASE %in% c(4,5)) & DISTZONE_DISEASE>8, 3,
+                                ifelse((PROXZONE_DISEASE %in% c(6,7,8,3)),4,
+                                       ifelse((PROXZONE_DISEASE %in% c(4,5)) & DISTZONE_DISEASE<9, 5,
+                                              ifelse( DISTZONE_DISEASE==8, 6,
+                                                      ifelse( DISTZONE_DISEASE==9, 7,NA))))))),
+  extent = factor(extent))
 TEVAR = TEVAR %>% 
   mutate(DEAD=factor(DEAD)) %>%
   mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
@@ -137,7 +143,6 @@ TEVAR = TEVAR %>%
                          labels = c('<40','40-49','50-59','60-69','70-79','80-89','>89'))) %>%
   mutate(GENDER=factor(GENDER,levels=c(1,2),
                        labels=c('male','female'))) %>%
-  #mutate(SURGYEAR=factor(SURGYEAR)) %>%
   mutate(PROXZONE_DISEASE=factor(PROXZONE_DISEASE)) %>%
   mutate(URGENCY=factor(URGENCY,levels = c(1,2,3),labels = c('Elective','Urgent','Emergent'))) %>%
   mutate(PATHOLOGY=factor(PATHOLOGY,levels=c(1,2,3,5,6,7),
@@ -250,31 +255,53 @@ TEVAR = TEVAR %>%
   mutate(DEV2_GTYPE=factor(DEV2_GTYPE,levels=c(1,2,3),
                            labels=c('Standard','Custom','Physician modified'))) %>%
   mutate(DEV3_GTYPE=factor(DEV3_GTYPE,levels=c(1,2,3),
-                           labels=c('Standard','Custom','Physician modified'))) %>%
-  mutate(DEV1_PROXZONE=factor(DEV1_PROXZONE))%>%
-  mutate(DEV2_PROXZONE=factor(DEV2_PROXZONE))%>%
-  mutate(DEV3_PROXZONE=factor(DEV3_PROXZONE))%>%
-  mutate(DEV4_PROXZONE=factor(DEV4_PROXZONE))%>%
-  mutate(DEV5_PROXZONE=factor(DEV5_PROXZONE))%>%
-  mutate(DEV6_PROXZONE=factor(DEV6_PROXZONE))%>%
-  mutate(DEV1_DISTZONE= factor(DEV1_DISTZONE, levels = c(0:15),
-                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
-                                          '10B','11R','11L','11B'))) %>%
-  mutate(DEV2_DISTZONE= factor(DEV2_DISTZONE, levels = c(0:15),
-                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
-                                          '10B','11R','11L','11B'))) %>%
-  mutate(DEV3_DISTZONE= factor(DEV3_DISTZONE, levels = c(0:15),
-                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
-                                          '10B','11R','11L','11B'))) %>%
-  mutate(DEV4_DISTZONE= factor(DEV4_DISTZONE, levels = c(0:15),
-                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
-                                          '10B','11R','11L','11B'))) %>%
-  mutate(DEV5_DISTZONE= factor(DEV5_DISTZONE, levels = c(0:15),
-                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
-                                          '10B','11R','11L','11B'))) %>%
-  mutate(DEV6_DISTZONE= factor(DEV6_DISTZONE, levels = c(0:15),
-                               labels = c(0,1,2,3,4,5,6,7,8,9,'10R','10L',
-                                          '10B','11R','11L','11B'))) %>%
+                           labels=c('Standard','Custom','Physician modified')))
+
+## Dr. Dansey's second filtering
+TEVAR<-TEVAR %>% 
+  mutate(distal_seal= DEV1_DISTZONE,prox_seal= DEV1_PROXZONE)
+
+for (i in 1:nrow(TEVAR)){
+  if ((!(is.na(TEVAR$DEV2_DISTZONE[i])) && (!is.na(TEVAR$DEV2_DISTZONE[i]>TEVAR$DEV1_DISTZONE[i]))&&
+       (TEVAR$DEV2_DISTZONE[i]>TEVAR$DEV1_DISTZONE[i]))) {
+    TEVAR$distal_seal[i] = TEVAR$DEV2_DISTZONE[i]}
+  else if((is.na(TEVAR$DEV1_DISTZONE[i])) && (!(is.na(TEVAR$DEV2_DISTZONE[i])))){
+       TEVAR$distal_seal[i] = TEVAR$DEV2_DISTZONE[i]}
+  if ((!(is.na(TEVAR$DEV3_DISTZONE[i])) && (!is.na(TEVAR$DEV3_DISTZONE[i]>TEVAR$DEV2_DISTZONE[i]))&&
+       (TEVAR$DEV3_DISTZONE[i]>TEVAR$DEV2_DISTZONE[i]))) {
+    TEVAR$distal_seal[i] = TEVAR$DEV3_DISTZONE[i]}
+  if ((!(is.na(TEVAR$DEV4_DISTZONE[i])) && (!is.na(TEVAR$DEV4_DISTZONE[i]>TEVAR$DEV3_DISTZONE[i]))&&
+       (TEVAR$DEV4_DISTZONE[i]>TEVAR$DEV3_DISTZONE[i]))) {
+    TEVAR$distal_seal[i] = TEVAR$DEV4_DISTZONE[i]}
+  if ((!(is.na(TEVAR$DEV5_DISTZONE[i])) && (!is.na(TEVAR$DEV5_DISTZONE[i]>TEVAR$DEV4_DISTZONE[i]))&&
+       (TEVAR$DEV5_DISTZONE[i]>TEVAR$DEV4_DISTZONE[i]))) {
+    TEVAR$distal_seal[i] = TEVAR$DEV5_DISTZONE[i]}
+  if ((!(is.na(TEVAR$DEV6_DISTZONE[i])) && (!is.na(TEVAR$DEV6_DISTZONE[i]>TEVAR$DEV5_DISTZONE[i]))&&
+       (TEVAR$DEV6_DISTZONE[i]>TEVAR$DEV5_DISTZONE[i]))) {
+    TEVAR$distal_seal[i] = TEVAR$DEV6_DISTZONE[i]}
+  }
+
+for (i in 1:nrow(TEVAR)){
+  if ((!(is.na(TEVAR$DEV2_PROXZONE[i])) && (!is.na(TEVAR$DEV2_PROXZONE[i]<TEVAR$DEV1_PROXZONE[i]))&&
+       (TEVAR$DEV2_PROXZONE[i]<TEVAR$DEV1_PROXZONE[i]))) {
+    TEVAR$prox_seal[i] = TEVAR$DEV2_PROXZONE[i]}
+  else if((is.na(TEVAR$DEV1_PROXZONE[i])) && (!(is.na(TEVAR$DEV2_PROXZONE[i])))){
+       TEVAR$prox_seal[i] = TEVAR$DEV2_PROXZONE[i]}
+  if ((!(is.na(TEVAR$DEV3_PROXZONE[i])) && (!is.na(TEVAR$DEV3_PROXZONE[i]<TEVAR$DEV2_PROXZONE[i]))&&
+       (TEVAR$DEV3_PROXZONE[i]<TEVAR$DEV2_PROXZONE[i]))) {
+    TEVAR$prox_seal[i] = TEVAR$DEV3_PROXZONE[i]}
+  if ((!(is.na(TEVAR$DEV4_PROXZONE[i])) && (!is.na(TEVAR$DEV4_PROXZONE[i]<TEVAR$DEV3_PROXZONE[i]))&&
+       (TEVAR$DEV4_PROXZONE[i]<TEVAR$DEV3_PROXZONE[i]))) {
+    TEVAR$prox_seal[i] = TEVAR$DEV4_PROXZONE[i]}
+  if ((!(is.na(TEVAR$DEV5_PROXZONE[i])) && (!is.na(TEVAR$DEV5_PROXZONE[i]<TEVAR$DEV4_PROXZONE[i]))&&
+       (TEVAR$DEV5_PROXZONE[i]<TEVAR$DEV4_PROXZONE[i]))) {
+    TEVAR$prox_seal[i] = TEVAR$DEV5_PROXZONE[i]}
+  if ((!(is.na(TEVAR$DEV6_PROXZONE[i])) && (!is.na(TEVAR$DEV6_PROXZONE[i]<TEVAR$DEV5_PROXZONE[i]))&&
+       (TEVAR$DEV6_PROXZONE[i]<TEVAR$DEV5_PROXZONE[i]))) {
+    TEVAR$prox_seal[i] = TEVAR$DEV6_PROXZONE[i]}
+  }
+  
+TEVAR<-TEVAR %>% 
   mutate(ILIACDEV_END_R= factor(ILIACDEV_END_R, levels = c(0,1,2,3),
                                labels = c('None','Common',
                                           'External,Intended','External, Unintended'))) %>%
@@ -330,7 +357,7 @@ TEVAR = TEVAR %>%
   mutate(R_SPINAL_DRAIN=factor(R_SPINAL_DRAIN,levels=c(0,1,2),
                            labels=c('No Drain','Pre-op Drain','Post-op Drain')))
 
-
+## Dr. Dansey's first filtering
 # 0"0.None" 1"1.Scallop/Fen/Branch" 2"2.Occluded/Covered" 3"3.Chimney"
 TEVAR<-TEVAR %>% mutate(lrenal = ifelse(BRANCH_LRENAL_TRT %in% c(0,6,7), 0, 
                                         ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
@@ -445,21 +472,20 @@ FBVAR = TEVAR %>% select(
   LIVINGSTATUS,PREOP_FUNCSTATUS,PRIOR_CVD,PRIOR_CAD,PRIOR_CHF,COPD,DIABETES,
   PREOP_DIALYSIS,HTN,PREOP_SMOKING,PRIOR_CABG,PRIOR_PCI,PRIOR_ANEURREP,STRESS,
   PREOP_CREAT,DC_ASA,DC_P2Y,DC_STATIN,R_CR_PRESENT,
-  lrenal,rrenal,sma,celiac,lsub,
+  lrenal,rrenal,sma,celiac,lsub,####
   #operative variables
   PRIOR_AORSURG,PRIOR_AORSURG_OPENLOC1,PRIOR_AORSURG_OPENLOC2,PRIOR_AORSURG_OPENLOC3,
   PRIOR_AORSURG_OPENLOC4,PRIOR_AORSURG_ENDOLOC1,PRIOR_AORSURG_ENDOLOC2,
   PRIOR_AORSURG_ENDOLOC3,PRIOR_AORSURG_ENDOLOC4,PATHOLOGY,PREOP_MAXAAADIA,URGENCY,
   PATHOLOGY_ANEURYSM_TYPE,PATHOLOGY_DISSECT_TYPE,PATHOLOGY_DISSECT_ONSET_DAYS,
-  Genetic,
+  Genetic,####
   PROXZONE_DISEASE,DISTZONE_DISEASE,ANESTHESIA,CONTRAST,EBL,FLUOROTIME,INTRAOP_PRBC,
   TOTALPROCTIME,IVUSTEE,ACCESS_R,ACCESS_L,LRGST_SHEATH_SIZE_R,
   LRGST_SHEATH_SIZE_L,ARMNECK_ACCESS,ARMNECK_ACCESS_LOC,AORDEV_NUM,
   AORDEV_CMOD,AORDEV_TECHSUCC,CONVTOOPEN,R_ENDOLEAK_AT_COMPLETION,
-  STAGEDAORTRT,DEV1_GTYPE,DEV2_GTYPE,DEV3_GTYPE,DEV1_PROXZONE,
-  DEV2_PROXZONE,DEV3_PROXZONE,DEV4_PROXZONE,DEV5_PROXZONE,DEV6_PROXZONE,
-  DEV1_DISTZONE,DEV2_DISTZONE,DEV3_DISTZONE,DEV4_DISTZONE,DEV5_DISTZONE,
-  DEV6_DISTZONE,DEV1_GRAFTDET,ILIACDEV_END_R,ILIACDEV_END_L,BRANCH_STAGED,BRANCH_LSUB,
+  STAGEDAORTRT,DEV1_GTYPE,DEV2_GTYPE,DEV3_GTYPE,
+  distal_seal, prox_seal,extent,####
+  DEV1_GRAFTDET,ILIACDEV_END_R,ILIACDEV_END_L,BRANCH_STAGED,BRANCH_LSUB,
   BRANCH_CELIAC,BRANCH_SMA,BRANCH_RRENAL,BRANCH_LRENAL,
   BRANCH_INNO_POST,BRANCH_LSUB_POST,BRANCH_CELIAC_POST,BRANCH_SMA_POST,
   BRANCH_RRENAL_POST,BRANCH_LRENAL_POST,BRANCH_RCOMILI_POST,BRANCH_LCOMILI_POST,
