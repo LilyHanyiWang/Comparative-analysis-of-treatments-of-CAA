@@ -52,7 +52,6 @@ Compare the data from July 2021 and September 2021. Keep the most updated ones.
 
 There are 6 rows from LTF July data missing in September dataset. And also 6 missing from the PROC dataset.
 
-*Only received info of PROC dataset variables? No info about LTF variables?*
 
 ```{r}
 ## ------------- merge July and September data ----------
@@ -81,7 +80,7 @@ n_occur <- data.frame(table(TEVAR$PATIENTID))
 
 Variables that exists in both LTF and PROC datasets are: `r colnames(TEVAR_PROC)[colnames(TEVAR_PROC) %in% colnames(TEVAR_LTF)]`. Merge by these variables.
 
-`r n_occur[n_occur$Freq > 1,]%>%n_distinct` participants have more than one records in this dataset.
+There are in total `r nrow(TEVAR)` objectives in the dataset. `r n_occur[n_occur$Freq > 1,]%>%n_distinct` participants have more than one records in this dataset.
 
 ## data cleaning based on inclusion, exclusion criteria
 
@@ -104,7 +103,7 @@ Wrong data points with distal zone < proximal zone:
 TEVAR %>% filter(DISTZONE_DISEASE < PROXZONE_DISEASE) %>%
   select(PATIENTID,PROXZONE_DISEASE,DISTZONE_DISEASE)
 
-## ------------- inclusion and exclusion----------
+## ------------- exclusion----------
 TEVAR = TEVAR %>% 
   filter(PRESENTATION !=2) %>%
   filter(PATHOLOGY %in% c(1,2,3,5,6,7)) %>%
@@ -117,13 +116,31 @@ n_occur <- data.frame(table(TEVAR$PATIENTID))
 
 After exclsion, there are in total `r nrow(TEVAR)` objectives in the final `TEVAR` dataset. `r n_occur[n_occur$Freq > 1,]%>%n_distinct` participants have more than one records in this dataset.
 
-Data cleaning: comorbidities changed to No/Yes scale.
+Data cleaning criteria: 
 
-What is the point of filtering `BRANCH_POST`.
-*Filter `BRANCH_POST` based on the same criteria?*
+- Comorbidity variables changed to No/Yes scale.
+
+- `extent`: type of TAAA based on `PROXZONE_DISEASE` and `DISTZONE_DISEASE`
+
+- `Genetic`: merge `GENHIST` and `R_GENHIST`, get the one with 1? 
+
+- `distal_seal`: ???
+
+- `prox_seal`: ???
+
+- `lrenal`: re-leveled `BRANCH_LRENAL_TRT`
+
+- `rrenal`: re-leveled `BRANCH_RRENAL_TRT`
+
+- `sma`: re-leveled `BRANCH_SMA_TRT`
+
+- `celiac`: re-leveled `BRANCH_CELIAC_TRT`
+
+- `lsub`: re-leveled `BRANCH_LSUB_TRT`
+
+`BRANCH_POSTt do we also re-level based on this?
 
 ```{r}
-## ------------- variables cleaning, patient demographic and co-morbidities----------
 TEVAR = TEVAR %>% mutate(
   #SURGYEAR=factor(SURGYEAR)
   PRESENTATION = factor(PRESENTATION,levels = c(0,1),labels = c('Asymptomatic','Symptomatic')),
@@ -133,12 +150,14 @@ TEVAR = TEVAR %>% mutate(
                                 ifelse((PROXZONE_DISEASE %in% c(6,7,8,3)),4,
                                        ifelse((PROXZONE_DISEASE %in% c(4,5)) & DISTZONE_DISEASE<9, 5,
                                               ifelse( DISTZONE_DISEASE==8, 6,
-                                                      ifelse( DISTZONE_DISEASE==9, 7,NA))))))),
-  extent = factor(extent))
+                                                      ifelse( DISTZONE_DISEASE==9, 7,NA)))))))) %>%
+  mutate(extent = factor(extent,levels=c(1,2,3,4,5,6,7),
+                         labels = c("Type 1 TAAA", "Type 2 TAAA" ,"Type 3 TAAA" ,"Type 4 TAAA" ,
+                                    "Type 5 TAAA" ,"Suprarenal AAA" ,"Infrarenal/Juxtarenal AAA")))
+
+
+## ------------- variables cleaning, patient demographic and co-morbidities----------
 TEVAR = TEVAR %>% 
-  mutate(DEAD=factor(DEAD)) %>%
-  mutate(PRESENTATION = factor(PRESENTATION,levels = c(0,1),
-                               labels = c('Asymptomatic','Symptomatic'))) %>%
   mutate(AGECAT = factor(AGECAT,levels = c(1,2,3,4,5,6,7),
                          labels = c('<40','40-49','50-59','60-69','70-79','80-89','>89'))) %>%
   mutate(GENDER=factor(GENDER,levels=c(1,2),
@@ -257,7 +276,7 @@ TEVAR = TEVAR %>%
   mutate(DEV3_GTYPE=factor(DEV3_GTYPE,levels=c(1,2,3),
                            labels=c('Standard','Custom','Physician modified')))
 
-## Dr. Dansey's second filtering
+## ------------- DEV_PROXZONE and DEV_DISTZONE filtering----------
 TEVAR<-TEVAR %>% 
   mutate(distal_seal= DEV1_DISTZONE,prox_seal= DEV1_PROXZONE)
 
@@ -357,36 +376,40 @@ TEVAR<-TEVAR %>%
   mutate(R_SPINAL_DRAIN=factor(R_SPINAL_DRAIN,levels=c(0,1,2),
                            labels=c('No Drain','Pre-op Drain','Post-op Drain')))
 
-## Dr. Dansey's first filtering
-# 0"0.None" 1"1.Scallop/Fen/Branch" 2"2.Occluded/Covered" 3"3.Chimney"
-TEVAR<-TEVAR %>% mutate(lrenal = ifelse(BRANCH_LRENAL_TRT %in% c(0,6,7), 0, 
-                                        ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
-                                               ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
-                                                      ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
-                        rrenal = ifelse(BRANCH_RRENAL_TRT %in% c(0,6,7), 0, 
-                                        ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
-                                               ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
-                                                      ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
-                        sma = ifelse(BRANCH_SMA_TRT %in% c(0,6,7), 0, 
-                                     ifelse(BRANCH_SMA_TRT %in% c(9,10,11,12,13,14), 1,
-                                            ifelse(BRANCH_SMA_TRT %in% c(1,2,3,4), 2,
-                                                   ifelse(BRANCH_SMA_TRT == 8,3,NA)))),
-                        celiac = ifelse(BRANCH_CELIAC_TRT %in% c(0,6,7), 0, 
-                                        ifelse(BRANCH_CELIAC_TRT %in% c(9,10,11,12,13,14), 1,
-                                               ifelse(BRANCH_CELIAC_TRT %in% c(1,2,3,4), 2,
-                                                      ifelse(BRANCH_CELIAC_TRT == 8,3,NA)))),
-                        lsub = ifelse(BRANCH_LSUB_TRT %in% c(0,6,7), 0, 
-                                      ifelse(BRANCH_LSUB_TRT %in% c(9,10,11,12,13,14), 1,
-                                             ifelse(BRANCH_LSUB_TRT %in% c(1,2,3,4), 2,
-                                                    ifelse(BRANCH_LSUB_TRT == 8,3,NA)))),
-                        )
+## ------------- BRANCH_TRT filtering----------
+TEVAR<-TEVAR %>% 
+  mutate(lrenal = ifelse(BRANCH_LRENAL_TRT %in% c(0,6,7), 0, 
+                         ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
+                                ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
+                                       ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
+         rrenal = ifelse(BRANCH_RRENAL_TRT %in% c(0,6,7), 0, 
+                         ifelse(BRANCH_LRENAL_TRT %in% c(9,10,11,12,13,14), 1,
+                                ifelse(BRANCH_LRENAL_TRT %in% c(1,2,3,4), 2,
+                                       ifelse(BRANCH_LRENAL_TRT == 8, 3,NA)))),
+         sma = ifelse(BRANCH_SMA_TRT %in% c(0,6,7), 0, 
+                      ifelse(BRANCH_SMA_TRT %in% c(9,10,11,12,13,14), 1,
+                             ifelse(BRANCH_SMA_TRT %in% c(1,2,3,4), 2,
+                                    ifelse(BRANCH_SMA_TRT == 8,3,NA)))),
+         celiac = ifelse(BRANCH_CELIAC_TRT %in% c(0,6,7), 0, 
+                         ifelse(BRANCH_CELIAC_TRT %in% c(9,10,11,12,13,14), 1,
+                                ifelse(BRANCH_CELIAC_TRT %in% c(1,2,3,4), 2,
+                                       ifelse(BRANCH_CELIAC_TRT == 8,3,NA)))),
+         lsub = ifelse(BRANCH_LSUB_TRT %in% c(0,6,7), 0, 
+                       ifelse(BRANCH_LSUB_TRT %in% c(9,10,11,12,13,14), 1,
+                              ifelse(BRANCH_LSUB_TRT %in% c(1,2,3,4), 2,
+                                     ifelse(BRANCH_LSUB_TRT == 8,3,NA)))))
 
-# drop missing data
-TEVAR = TEVAR %>% filter(lrenal %in% c(1,2,3)
-                         |rrenal %in% c(1,2,3)
-                         |celiac %in% c(1,2,3)
-                         |lsub %in% c(1,2,3)
-                         |sma %in% c(1,2,3))
+TEVAR = TEVAR %>%
+  mutate(lrenal=factor(lrenal,levels=c(0,1,2,3),
+                           labels=c('None','Scallop/Fen/Branch','Occluded/Covered','Chimney'))) %>%
+  mutate(rrenal=factor(rrenal,levels=c(0,1,2,3),
+                           labels=c('None','Scallop/Fen/Branch','Occluded/Covered','Chimney')))%>%
+  mutate(sma=factor(sma,levels=c(0,1,2,3),
+                           labels=c('None','Scallop/Fen/Branch','Occluded/Covered','Chimney')))%>%
+  mutate(celiac=factor(celiac,levels=c(0,1,2,3),
+                           labels=c('None','Scallop/Fen/Branch','Occluded/Covered','Chimney')))%>%
+  mutate(lsub=factor(lsub,levels=c(0,1,2,3),
+                           labels=c('None','Scallop/Fen/Branch','Occluded/Covered','Chimney')))
 
 
 ## ------------- variables cleaning, outcomes----------
