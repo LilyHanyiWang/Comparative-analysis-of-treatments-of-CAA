@@ -16,27 +16,29 @@ library(ggpubr)
 
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
-wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
-path_lily = c("../data/FBVAR.csv")
+#wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+#path_lily = c("../data/FBVAR.csv")
 
 
 ## ------------- working directories for Jenn ----------
-#wd_jenn = '/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA'
+#wd_jenn = '/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main'
 #path_jenn = c(
-#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEV#AR_International_LTF_r12_2_14_20210701.csv",
-#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEV#AR_International_PROC_r12_2_14_20210701.csv",
-#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEVA#R_International_LTF_r12_2_14_20210901.csv",
-#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEV#AR_International_PROC_r12_2_14_20210901.csv")
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main/TEVAR_International_20210712/TEVAR#_International_LTF_r12_2_14_20210701.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main/TEVAR_International_20210712/TEVAR#_International_PROC_r12_2_14_20210701.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main/TEVAR_International_20210901/TEVAR#_International_LTF_r12_2_14_20210901.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main/TEVAR_International_20210901/TEVAR#_International_PROC_r12_2_14_20210901.csv")
 
 ## ------------- read data ----------
-setwd(wd_lily)
-FBVAR = read.csv(path_lily)
+#setwd(wd_lily)
+#FBVAR = read.csv(path_lily)
 
 #setwd(wd_jenn)
+#FBVAR = read.csv(path_jenn)
 #TEVAR_LTF_07 = read.csv(path_jenn[1])
 #TEVAR_PROC_07 = read.csv(path_jenn[2])
 #TEVAR_LTF_09 = read.csv(path_jenn[3])
 #TEVAR_PROC_09 = read.csv(path_jenn[4])
+FBVAR <- read.csv("~/Desktop/Comparative-analysis-of-treatments-of-CAA-main/FBVAR.csv")
 ```
 
 
@@ -57,7 +59,7 @@ table1(~  PRESENTATION, data = FBVAR)
 table1(~ R_PREOP_AMBUL+AGE+AGECAT+GENDER+ETHNICITY+ RACE+TRANSFER+PRIMARYINSURER+ 
          LIVINGSTATUS+ PREOP_FUNCSTATUS+PRIOR_CVD +PRIOR_CAD+PRIOR_CHF+COPD+
          DIABETES+PREOP_DIALYSIS+HTN+ PREOP_SMOKING+PRIOR_CABG+PRIOR_PCI+PRIOR_ANEURREP+
-         STRESS+PREOP_CREAT+DC_ASA+DC_P2Y+DC_STATIN+R_CR_PRESENT
+         STRESS+PREOP_CREAT+DC_ASA+DC_P2Y+DC_STATIN#+R_CR_PRESENT
          | PRESENTATION, data = FBVAR,overall="Total")
 ```
 
@@ -78,11 +80,12 @@ table1(~ PRIOR_AORSURG+
          ANESTHESIA+CONTRAST+EBL+FLUOROTIME+INTRAOP_PRBC+TOTALPROCTIME+IVUSTEE+ACCESS_R+ACCESS_L+
          LRGST_SHEATH_SIZE_R+LRGST_SHEATH_SIZE_L+ARMNECK_ACCESS+ARMNECK_ACCESS_LOC+
          AORDEV_NUM+AORDEV_CMOD+STAGEDAORTRT+DEV1_GTYPE+DEV2_GTYPE+DEV3_GTYPE+
-         factor(distal_seal)+factor(prox_seal)+######
+         #factor(distal_seal)+factor(prox_seal)+######
          ILIACDEV_END_R+ILIACDEV_END_L+
          BRANCH_STAGED+BRANCH_LSUB+BRANCH_CELIAC+BRANCH_SMA+BRANCH_RRENAL+BRANCH_LRENAL+
-         BRANCH_INNO_POST+
-         BRANCH_LSUB_VERTPAT+ANESTHESIA_GEN_TIMEEXT+POSTOP_SPINALDRAIN+
+         #BRANCH_INNO_POST+
+         #BRANCH_LSUB_VERTPAT+
+         ANESTHESIA_GEN_TIMEEXT+POSTOP_SPINALDRAIN+
          R_CELIAC+R_DISTATTZONE+R_GDPROXIMAL+R_GRFTCONFIG+
          R_LT_RENAL+R_PRATTZONE+R_RT_RENAL+R_SMA+R_SPINAL_DRAIN+
          factor(lrenal)+factor(rrenal)+factor(sma)+factor(celiac)+factor(lsub) ######
@@ -106,14 +109,17 @@ table1(~ DEAD+PROC_SURVIVALDAYS | PRESENTATION, data = FBVAR)
 ## ------------- table: secondary outcomes----------
 table1(~ TOTAL_LOS+POSTOP_LOS+
          AORDEV_TECHSUCC+CONVTOOPEN+R_ENDOLEAK_AT_COMPLETION+
-         BRANCH_LSUB_POST+BRANCH_CELIAC_POST+BRANCH_SMA_POST+BRANCH_RRENAL_POST+
-         BRANCH_LRENAL_POST+BRANCH_RCOMILI_POST+BRANCH_LCOMILI_POST+ICUSTAY+
+         #BRANCH_LSUB_POST+BRANCH_CELIAC_POST+BRANCH_SMA_POST+BRANCH_RRENAL_POST+
+         #BRANCH_LRENAL_POST+BRANCH_RCOMILI_POST+BRANCH_LCOMILI_POST+
+         BRANCH_POST+ICUSTAY+
          POSTOP_PRBC+POSTOP_VASO+POSTOP_HIGHCREAT+POSTOP_COMPLICATIONS+
          R_POSTOP_HEMATOMA+R_POSTOP_SITEOCC+
-         POSTOP_MI+POSTOP_DYSRHYTHMIA+POSTOP_CHF+POSTOP_CEREBROSX+POSTOP_RESPIRATORY+
+         POSTOP_AH+#POSTOP_MI+POSTOP_DYSRHYTHMIA+POSTOP_CHF+
+         POSTOP_CEREBROSX+POSTOP_RESPIRATORY+
          POSTOP_DIALYSIS+POSTOP_ARMEMBO+POSTOP_LEGEMBO+POSTOP_LEGCOMPART+POSTOP_INTISCH+
          R_POSTOP_BOWELISCH+POSTOP_RENALISCH+R_POSTOP_SSI+POSTOP_SPINAL_ISCHEMIA+
-         RETX+DC_STATUS+R_LE_ISCH+R_POSTOP_RENAL+R_RTOR
+         RETX_R_RTOR+#RETX+
+         DC_STATUS+R_LE_ISCH+R_POSTOP_RENAL#+R_RTOR
        | PRESENTATION, data = FBVAR)
 
 ## ------------- Survival curves----------
