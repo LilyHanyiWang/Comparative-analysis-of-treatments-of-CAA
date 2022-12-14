@@ -6,7 +6,7 @@ output: pdf_document
 
 
 ```{r library, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE,fig.width = 10)
 library(tidyverse)
 library(table1)
 library(Hmisc)
@@ -16,29 +16,27 @@ library(ggpubr)
 
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
-#wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
-#path_lily = c("../data/FBVAR.csv")
+wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+path_lily = c("../data/FBVAR.csv")
 
 
 ## ------------- working directories for Jenn ----------
-#wd_jenn = '/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main'
+#wd_jenn = '/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA'
 #path_jenn = c(
-#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main/TEVAR_International_20210712/TEVAR#_International_LTF_r12_2_14_20210701.csv",
-#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main/TEVAR_International_20210712/TEVAR#_International_PROC_r12_2_14_20210701.csv",
-#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main/TEVAR_International_20210901/TEVAR#_International_LTF_r12_2_14_20210901.csv",
-#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA-main/TEVAR_International_20210901/TEVAR#_International_PROC_r12_2_14_20210901.csv")
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEV#AR_International_LTF_r12_2_14_20210701.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210712/TEV#AR_International_PROC_r12_2_14_20210701.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEVA#R_International_LTF_r12_2_14_20210901.csv",
+#  "/Users/jenniferci/Desktop/Comparative-analysis-of-treatments-of-CAA/TEVAR_International_20210901/TEV#AR_International_PROC_r12_2_14_20210901.csv")
 
 ## ------------- read data ----------
-#setwd(wd_lily)
-#FBVAR = read.csv(path_lily)
+setwd(wd_lily)
+FBVAR = read.csv(path_lily)
 
 #setwd(wd_jenn)
-#FBVAR = read.csv(path_jenn)
 #TEVAR_LTF_07 = read.csv(path_jenn[1])
 #TEVAR_PROC_07 = read.csv(path_jenn[2])
 #TEVAR_LTF_09 = read.csv(path_jenn[3])
 #TEVAR_PROC_09 = read.csv(path_jenn[4])
-FBVAR <- read.csv("~/Desktop/Comparative-analysis-of-treatments-of-CAA-main/FBVAR.csv")
 ```
 
 
@@ -56,10 +54,10 @@ table1(~  PRESENTATION, data = FBVAR)
 ```{r}
 ## ------------- table: Patient demographic and co-morbidities----------
 
-table1(~ R_PREOP_AMBUL+AGE+AGECAT+GENDER+ETHNICITY+ RACE+TRANSFER+PRIMARYINSURER+ 
+table1(~ AGE+AGECAT+GENDER+ETHNICITY+ RACE+TRANSFER+PRIMARYINSURER+ 
          LIVINGSTATUS+ PREOP_FUNCSTATUS+PRIOR_CVD +PRIOR_CAD+PRIOR_CHF+COPD+
          DIABETES+PREOP_DIALYSIS+HTN+ PREOP_SMOKING+PRIOR_CABG+PRIOR_PCI+PRIOR_ANEURREP+
-         STRESS+PREOP_CREAT+DC_ASA+DC_P2Y+DC_STATIN#+R_CR_PRESENT
+         STRESS+PREOP_CREAT+DC_ASA+DC_P2Y+DC_STATIN+PREOP_CREAT
          | PRESENTATION, data = FBVAR,overall="Total")
 ```
 
@@ -71,27 +69,36 @@ table1(~ R_PREOP_AMBUL+AGE+AGECAT+GENDER+ETHNICITY+ RACE+TRANSFER+PRIMARYINSURER
 ```{r}
 ## ------------- table:  Operative Variables----------
 table1(~ PRIOR_AORSURG+
-         PRIOR_AORSURG_OPENLOC1+PRIOR_AORSURG_OPENLOC2+PRIOR_AORSURG_OPENLOC3+PRIOR_AORSURG_OPENLOC4+
-         PRIOR_AORSURG_ENDOLOC1+PRIOR_AORSURG_ENDOLOC2+PRIOR_AORSURG_ENDOLOC3+PRIOR_AORSURG_ENDOLOC4+
          PATHOLOGY+PREOP_MAXAAADIA+URGENCY+
          PATHOLOGY_ANEURYSM_TYPE+PATHOLOGY_DISSECT_TYPE+PATHOLOGY_DISSECT_ONSET_DAYS+
-         Genetic+ ######
-         PROXZONE_DISEASE+DISTZONE_DISEASE+ extent+
-         ANESTHESIA+CONTRAST+EBL+FLUOROTIME+INTRAOP_PRBC+TOTALPROCTIME+IVUSTEE+ACCESS_R+ACCESS_L+
-         LRGST_SHEATH_SIZE_R+LRGST_SHEATH_SIZE_L+ARMNECK_ACCESS+ARMNECK_ACCESS_LOC+
-         AORDEV_NUM+AORDEV_CMOD+STAGEDAORTRT+DEV1_GTYPE+DEV2_GTYPE+DEV3_GTYPE+
-         #factor(distal_seal)+factor(prox_seal)+######
+         GENE+PROXZONE_DISEASE+DISTZONE_DISEASE+ extent+
+         ANESTHESIA+CONTRAST+EBL+FLUOROTIME+INTRAOP_PRBC+TOTALPROCTIME+IVUSTEE+
+         ACCESS+ #ACCESS_R+ACCESS_L+
+         #LRGST_SHEATH_SIZE_R+LRGST_SHEATH_SIZE_L+
+         ARMNECK_ACCESS+ #ARMNECK_ACCESS_LOC+
+         AORDEV_NUM+AORDEV_CMOD+# STAGEDAORTRT+
+         DEV_GTYPE+ # DEV1_GTYPE+DEV2_GTYPE+DEV3_GTYPE+
          ILIACDEV_END_R+ILIACDEV_END_L+
          BRANCH_STAGED+BRANCH_LSUB+BRANCH_CELIAC+BRANCH_SMA+BRANCH_RRENAL+BRANCH_LRENAL+
-         #BRANCH_INNO_POST+
-         #BRANCH_LSUB_VERTPAT+
          ANESTHESIA_GEN_TIMEEXT+POSTOP_SPINALDRAIN+
          R_CELIAC+R_DISTATTZONE+R_GDPROXIMAL+R_GRFTCONFIG+
-         R_LT_RENAL+R_PRATTZONE+R_RT_RENAL+R_SMA+R_SPINAL_DRAIN+
-         factor(lrenal)+factor(rrenal)+factor(sma)+factor(celiac)+factor(lsub) ######
+         R_LT_RENAL+R_PRATTZONE+R_RT_RENAL+R_SMA+
+         lrenal+rrenal+sma+celiac+lsub
        | PRESENTATION, data = FBVAR)
 
+FBVAR %>% filter(lrenal=='Chimney'|rrenal=='Chimney'|sma=='Chimney'|celiac=='Chimney'|lsub=='Chimney') %>% select(lrenal,rrenal,sma,celiac)
+
 ```
+
+The levels of `lrenal`,`rrenal`,`sma`,`celiac`,`lsub` are really messy.
+
+`r nrow(FBVAR %>% filter(lrenal=='Chimney'|rrenal=='Chimney'|sma=='Chimney'|celiac=='Chimney'|lsub=='Chimney') )` patients have at least one 'Chimney'.
+
+`r nrow(FBVAR %>% filter(lrenal=='Occluded/Covered'|rrenal=='Occluded/Covered'|sma=='Occluded/Covered'|celiac=='Occluded/Covered'|lsub=='Occluded/Covered') )` patients have at least one 'Occluded/Covered'.
+
+`r nrow(FBVAR %>% filter(lrenal=='Scallop/Fen/Branch'|rrenal=='Scallop/Fen/Branch'|sma=='Scallop/Fen/Branch'|celiac=='Scallop/Fen/Branch'|lsub=='Scallop/Fen/Branch') )` patients have at least one 'Scallop/Fen/Branch'.
+
+`r nrow(FBVAR %>% filter(lrenal=='None'& rrenal=='None'& sma=='None'& celiac=='None'& lsub=='None') )` patients have all 'None'.
 
 
 ## Outcomes
@@ -127,7 +134,7 @@ table1(~ TOTAL_LOS+POSTOP_LOS+
 ```
 
 ## Volume Variables 
-
+  
 Volume Variables: `REGIONID`, `CENTERID`, `PHYSICIANID`
 
 ```{r}
@@ -169,11 +176,6 @@ Quantiles of centers' volume: `r quantile(center_vol[order(center_vol$Freq),]$Fr
 
 Quantiles of physicians' volume: `r quantile(phys_vol[order(phys_vol$Freq),]$Freq)`
 
-*how to do cluster on centers and physicians*
-
-Define high volume center/physician based on the quantile from violin plot and account for that in a multivariable model.
-
-*mean and median*: based on outliners?
 
 \newpage
 ## Code Appendix
