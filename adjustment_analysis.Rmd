@@ -1,0 +1,46 @@
+---
+title: "Adjustment Analysis for the VQI FBVAR Dataset"
+author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
+output: pdf_document
+---
+
+
+```{r library, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE,fig.width = 10)
+library(tidyverse)
+library(table1)
+library(survival)
+library(Hmisc)
+library(ggplot2)
+library(ggpubr)
+
+```
+
+```{r setup wd}
+## ------------- working directories for Lily ----------
+wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+path_lily = c("../data/FBVAR.csv")
+
+
+## ------------- working directories for Jenn ----------
+# wd_jenn = 
+# path_jenn = 
+
+## ------------- read data ----------
+setwd(wd_lily)
+FBVAR = read.csv(path_lily)
+
+# setwd(wd_jenn)
+# FBVAR = read.csv(path_jenn)
+```
+
+## Correlation matrix
+
+## Survival analysis
+
+\newpage
+## Code Appendix
+
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE,include=TRUE}
+```
+

@@ -1,5 +1,5 @@
 ---
-title: "Descriptive Statistics for the VQI FBVAR Dataset"
+title: "Univariate Analysis for the VQI FBVAR Dataset"
 author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
 output: pdf_document
 ---
@@ -9,9 +9,11 @@ output: pdf_document
 knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE,fig.width = 10)
 library(tidyverse)
 library(table1)
+library(survival)
 library(Hmisc)
 library(ggplot2)
 library(ggpubr)
+
 ```
 
 ```{r setup wd}
@@ -39,54 +41,78 @@ FBVAR = read.csv(path_lily)
 #TEVAR_PROC_09 = read.csv(path_jenn[4])
 ```
 
+## p-value
 
-## population of interest: the asymptomatic and symptomatics groups. 
+We use Welch's Two Sample t-test for continuous variables and Pearson's Chi-squared Test for categorical variables.
+
+*Mann-Whitney U test*
+
+```{r}
+pvalue <- function(x, ...) {
+    y <- unlist(x)
+    g <- factor(rep(1:length(x), times=sapply(x, length)))
+    if (is.numeric(y)) {
+        # For numeric variables, Welch's Two Sample t-test
+        p <- t.test(y ~ g)$p.value
+    } else {
+        # For categorical variables, Pearson's Chi-squared Test
+        p <- chisq.test(table(y, g))$p.value
+    }
+    c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+```
+
+## Descriptive statistics tables
+
+```{r}
+## ------------- variables labels and units----------
+# var.labels = c(AGE="Age", AGECAT="Age category")
+# label(FBVAR) = as.list(var.labels[match(names(FBVAR), names(var.labels))])
+# 
+# units(FBVAR$AGE) = "years"
+
+```
+
+
+### population of interest 
 
 ```{r}
 ## ------------- population of interest ----------
 table1(~  PRESENTATION, data = FBVAR)
+
 ```
 
-## Patient demographic and co-morbidities
+### Patient demographic and co-morbidities
 
 **Table: A comparison of the baseline demographic and co-morbidities characteristics for symptomatic versus asymptomatic patients who undergo the F-BEVAR procedure**
 
 ```{r}
 ## ------------- table: Patient demographic and co-morbidities----------
 
-table1(~ AGE+AGECAT+GENDER+ETHNICITY+ RACE+TRANSFER+PRIMARYINSURER+ 
-         LIVINGSTATUS+ PREOP_FUNCSTATUS+PRIOR_CVD +PRIOR_CAD+PRIOR_CHF+COPD+
-         DIABETES+PREOP_DIALYSIS+HTN+ PREOP_SMOKING+PRIOR_CABG+PRIOR_PCI+PRIOR_ANEURREP+
-         STRESS+PREOP_CREAT+DC_ASA+DC_P2Y+DC_STATIN+PREOP_CREAT
-         | PRESENTATION, data = FBVAR,overall="Total")
+table1(~   AGE+AGECAT+GENDER+ETHNICITY+ RACE+ TRANSFER+ PRIMARYINSURER+ LIVINGSTATUS+ PREOP_FUNCSTATUS+ PRIOR_CVD+ PRIOR_CAD+ PRIOR_CHF+ COPD+ DIABETES+ PREOP_DIALYSIS+ HTN+ PREOP_SMOKING+ PRIOR_CABG+ PRIOR_PCI+ PRIOR_ANEURREP+ STRESS+ PREOP_CREAT+ DC_ASA+DC_P2Y+DC_STATIN
+       | PRESENTATION, data = FBVAR,overall=F, extra.col=list(`P-value`=pvalue))
 ```
 
 
-## Operative Variables
+### Operative Variables
+
+PATHOLOGY_DISSECT_ONSET_DAYS: Dissection Date minus Procedure Date  (negative means prior to the procedure). This field is required if Pathology has one of ["Dissection", "Aneurysm from dissection"] AND *Presentation has one of ["Symptomatic", "Rupture"]*. Otherwise, this field should be blank.
+
+```{r}
+# PATHOLOGY_DISSECT_ONSET_DAYS?
+
+table1(~ PATHOLOGY_DISSECT_ONSET_DAYS | PRESENTATION, data = FBVAR,overall=F)
+
+
+```
 
 **Table: A comparison of the operative characteristics for symptomatic versus asymptomatic patients who undergo the F-BEVAR procedure**
 
 ```{r}
 ## ------------- table:  Operative Variables----------
-table1(~ PRIOR_AORSURG+
-         PATHOLOGY+PREOP_MAXAAADIA+URGENCY+
-         PATHOLOGY_ANEURYSM_TYPE+PATHOLOGY_DISSECT_TYPE+PATHOLOGY_DISSECT_ONSET_DAYS+
-         GENE+PROXZONE_DISEASE+DISTZONE_DISEASE+ extent+
-         ANESTHESIA+CONTRAST+EBL+FLUOROTIME+INTRAOP_PRBC+TOTALPROCTIME+IVUSTEE+
-         ACCESS+ #ACCESS_R+ACCESS_L+
-         #LRGST_SHEATH_SIZE_R+LRGST_SHEATH_SIZE_L+
-         ARMNECK_ACCESS+ #ARMNECK_ACCESS_LOC+
-         AORDEV_NUM+AORDEV_CMOD+# STAGEDAORTRT+
-         DEV_GTYPE+ # DEV1_GTYPE+DEV2_GTYPE+DEV3_GTYPE+
-         ILIACDEV_END_R+ILIACDEV_END_L+
-         BRANCH_STAGED+BRANCH_LSUB+BRANCH_CELIAC+BRANCH_SMA+BRANCH_RRENAL+BRANCH_LRENAL+
-         ANESTHESIA_GEN_TIMEEXT+POSTOP_SPINALDRAIN+
-         R_CELIAC+R_DISTATTZONE+R_GDPROXIMAL+R_GRFTCONFIG+
-         R_LT_RENAL+R_PRATTZONE+R_RT_RENAL+R_SMA+
-         lrenal+rrenal+sma+celiac+lsub
-       | PRESENTATION, data = FBVAR)
-
-FBVAR %>% filter(lrenal=='Chimney'|rrenal=='Chimney'|sma=='Chimney'|celiac=='Chimney'|lsub=='Chimney') %>% select(lrenal,rrenal,sma,celiac)
+table1(~ PRIOR_AORSURG+ PATHOLOGY+ PREOP_MAXAAADIA+ URGENCY+ PATHOLOGY_ANEURYSM_TYPE+ PATHOLOGY_DISSECT_TYPE+ PROXZONE_DISEASE+ GENHIST+ DISTZONE_DISEASE+ extent+ ANESTHESIA+ CONTRAST+ EBL+FLUOROTIME+ INTRAOP_PRBC+TOTALPROCTIME+IVUSTEE+ ACCESS+ARMNECK_ACCESS+ AORDEV_NUM+ AORDEV_CMOD+ DEV_GTYPE+ ILIACDEV_END_R+ ILIACDEV_END_L+ BRANCH_STAGED+ BRANCH_LSUB+ BRANCH_CELIAC+ BRANCH_SMA+BRANCH_RRENAL+ BRANCH_LRENAL+ ANESTHESIA_GEN_TIMEEXT+ POSTOP_SPINALDRAIN+lrenal+rrenal+sma+celiac+lsub
+       | PRESENTATION, data = FBVAR,overall=F, extra.col=list(`P-value`=pvalue))
 
 ```
 
@@ -101,39 +127,27 @@ The levels of `lrenal`,`rrenal`,`sma`,`celiac`,`lsub` are really messy.
 `r nrow(FBVAR %>% filter(lrenal=='None'& rrenal=='None'& sma=='None'& celiac=='None'& lsub=='None') )` patients have all 'None'.
 
 
-## Outcomes
+### Outcomes
 
 **Table 3: A comparison of the long term follow-up outcomes for symptomatic versus asymptomatic patients who undergo the F-BEVAR procedure**
 
 ```{r}
 ## ------------- table: primary outcomes----------
-table1(~ DEAD+PROC_SURVIVALDAYS | PRESENTATION, data = FBVAR)
+table1(~ DEAD+PROC_SURVIVALDAYS+LTF_NUM_REINT | PRESENTATION, data = FBVAR,overall=F, extra.col=list(`P-value`=pvalue))
 ```
 
 **Table 3: A comparison of the procedure outcomes for symptomatic versus asymptomatic patients who undergo the F-BEVAR procedure**
 
 ```{r}
 ## ------------- table: secondary outcomes----------
-table1(~ TOTAL_LOS+POSTOP_LOS+
-         AORDEV_TECHSUCC+CONVTOOPEN+R_ENDOLEAK_AT_COMPLETION+
-         #BRANCH_LSUB_POST+BRANCH_CELIAC_POST+BRANCH_SMA_POST+BRANCH_RRENAL_POST+
-         #BRANCH_LRENAL_POST+BRANCH_RCOMILI_POST+BRANCH_LCOMILI_POST+
-         BRANCH_POST+ICUSTAY+
-         POSTOP_PRBC+POSTOP_VASO+POSTOP_HIGHCREAT+POSTOP_COMPLICATIONS+
-         R_POSTOP_HEMATOMA+R_POSTOP_SITEOCC+
-         POSTOP_AH+#POSTOP_MI+POSTOP_DYSRHYTHMIA+POSTOP_CHF+
-         POSTOP_CEREBROSX+POSTOP_RESPIRATORY+
-         POSTOP_DIALYSIS+POSTOP_ARMEMBO+POSTOP_LEGEMBO+POSTOP_LEGCOMPART+POSTOP_INTISCH+
-         R_POSTOP_BOWELISCH+POSTOP_RENALISCH+R_POSTOP_SSI+POSTOP_SPINAL_ISCHEMIA+
-         RETX_R_RTOR+#RETX+
-         DC_STATUS+R_LE_ISCH+R_POSTOP_RENAL#+R_RTOR
-       | PRESENTATION, data = FBVAR)
+table1(~ TOTAL_LOS+ POSTOP_LOS+ AORDEV_TECHSUCC+ CONVTOOPEN+ LEAKATCOMP_NONE+ ICUSTAY+ POSTOP_PRBC+ POSTOP_VASO+ POSTOP_HIGHCREAT+ POSTOP_COMPLICATIONS+ ACCESS_COMPLICATION+POSTOP_AH+ POSTOP_CEREBROSX+ POSTOP_RESPIRATORY+ POSTOP_DIALYSIS+ POSTOP_ARMEMBO+ POSTOP_LEGEMBO+ POSTOP_LEGCOMPART+ POSTOP_INTISCH+ POSTOP_RENALISCH+ POSTOP_SPINAL_ISCHEMIA+ RETX_R_RTOR+ DC_STATUS+ BRANCH_POST
+       | PRESENTATION, data = FBVAR,overall=F, extra.col=list(`P-value`=pvalue))
 
 ## ------------- Survival curves----------
 
 ```
 
-## Volume Variables 
+### Volume Variables 
   
 Volume Variables: `REGIONID`, `CENTERID`, `PHYSICIANID`
 
