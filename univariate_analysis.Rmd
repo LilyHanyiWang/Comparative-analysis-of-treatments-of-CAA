@@ -45,8 +45,6 @@ FBVAR = read.csv(path_lily)
 
 We use Welch's Two Sample t-test for continuous variables and Pearson's Chi-squared Test for categorical variables.
 
-*Mann-Whitney U test*
-
 ```{r}
 pvalue <- function(x, ...) {
     y <- unlist(x)
@@ -96,16 +94,6 @@ table1(~   AGE+AGECAT+GENDER+ETHNICITY+ RACE+ TRANSFER+ PRIMARYINSURER+ LIVINGST
 
 
 ### Operative Variables
-
-PATHOLOGY_DISSECT_ONSET_DAYS: Dissection Date minus Procedure Date  (negative means prior to the procedure). This field is required if Pathology has one of ["Dissection", "Aneurysm from dissection"] AND *Presentation has one of ["Symptomatic", "Rupture"]*. Otherwise, this field should be blank.
-
-```{r}
-# PATHOLOGY_DISSECT_ONSET_DAYS?
-
-table1(~ PATHOLOGY_DISSECT_ONSET_DAYS | PRESENTATION, data = FBVAR,overall=F)
-
-
-```
 
 **Table: A comparison of the operative characteristics for symptomatic versus asymptomatic patients who undergo the F-BEVAR procedure**
 
