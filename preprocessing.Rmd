@@ -371,8 +371,8 @@ TEVAR = TEVAR %>%
   mutate(POSTOP_VASO=factor(POSTOP_VASO,levels=c(0,1,2,3),labels=c('No','Yes','Yes','Yes'))) %>%
   mutate(POSTOP_COMPLICATIONS=factor(POSTOP_COMPLICATIONS,levels=c(0,1),labels=c('No','Yes'))) %>%
   # ACCESS_COMPLICATION
-  mutate (ACCESS_COMPLICATION=case_when(ACCESS_HEMATOMA_R!=0 & ACCESS_HEMATOMA_L!=0 &
-                                          ACCESS_OCCLUSION_R !=0 & ACCESS_OCCLUSION_L !=0 ~ "Yes",
+  mutate (ACCESS_COMPLICATION=case_when(ACCESS_HEMATOMA_R!=0 | ACCESS_HEMATOMA_L!=0 |
+                                          ACCESS_OCCLUSION_R !=0 | ACCESS_OCCLUSION_L !=0 ~ "Yes",
                                        TRUE ~ "No")) %>%
   ## POSTOP_AH: merge POSTOP_MI,POSTOP_DYSRHYTHMIA,POSTOP_CHF
   mutate(POSTOP_MI=factor(POSTOP_MI,levels=c(0,1,2),labels=c('No','Yes','Yes'))) %>%
