@@ -67,7 +67,7 @@ Any changes needed? (e.g, time scale, colors, change to at risk table, add numbe
 ```{r, fig.width=8, fig.height=6}
 ## Survival analysis
 # event = 1 for uncensored (Dead), event = 0 for censored (Alive)
-FBVAR$event <- ifelse(FBVAR$DEAD=="Yes", 1, 0)
+FBVAR$event <- ifelse(FBVAR$DEAD=="TRUE", 1, 0)
 
 tte <- FBVAR %>% with(Surv(PROC_SURVIVALDAYS/365, event))
 
