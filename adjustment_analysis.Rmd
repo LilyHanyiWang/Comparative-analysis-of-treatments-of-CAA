@@ -17,6 +17,8 @@ library(ggpubr)
 library(corrplot)
 library(caret)
 library(survminer)
+library(knitr)
+library(kableExtra)
 
 ```
 
@@ -84,6 +86,46 @@ ggsurvplot(fit,
            xlab = "Time in years",
            legend.labs = c("Asymptomatic", "Symptomatic"),
            break.time.by=1) 
+```
+
+Univariate (unadjusted) and Multivariate (adjusted) Cox Proportional Hazards Models. Reference group is asymptomatic patients. 
+
+Adjusted for the following variables: `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PATHOLOGY`, `extent`, `POSTOP_LOS`, `POSTOP_COMPLICATIONS`, `POSTOP_DIALYSIS`, `POSTOP_LEGEMBO`, `POSTOP_CEREBROSX`, `POSTOP_RESPIRATORY`, `POSTOP_SPINAL_ISCHEMIA` , `RETX_R_RTOR` , and `BRANCH_POST`. 
+
+Hazard ratio went from 1.88 to 1.58 after adjustment (0.3 difference). 
+
+```{r, fig.width=8, fig.height=6}
+# Unadjusted survival model
+mod.cox1 <- coxph(tte ~ PRESENTATION, data=FBVAR)
+
+tab1 <- data.frame(
+  Estimate = round(summary(mod.cox1)$conf.int[1],2),
+  "Lower 95% CI" = round(summary(mod.cox1)$conf.int[3],2),
+  "Upper 95% CI" = round(summary(mod.cox1)$conf.int[4],2),
+  "P-value" = "<0.001"
+)
+rownames(tab1) <- c("Symptomatic (Unadjusted)")
+
+# Adjusted survival model
+mod.cox2 <- coxph(tte ~ PRESENTATION + cluster(CENTERID) + AGECAT + GENDER + PREOP_SMOKING 
+                 + PRIOR_AORSURG + PRIOR_CHF + PATHOLOGY + extent + POSTOP_LOS
+                 + POSTOP_COMPLICATIONS + POSTOP_DIALYSIS + POSTOP_LEGEMBO + POSTOP_CEREBROSX
+                 + POSTOP_RESPIRATORY + POSTOP_SPINAL_ISCHEMIA + RETX_R_RTOR + BRANCH_POST, 
+                 data=FBVAR)
+
+tab2 <- data.frame(
+  Estimate = round(summary(mod.cox2)$conf.int[1],2),
+  "Lower 95% CI" = round(summary(mod.cox2)$conf.int[1,3],2),
+  "Upper 95% CI" = round(summary(mod.cox2)$conf.int[1,4],2),
+  "P-value" = "0.01"
+)
+rownames(tab2) <- c("Symptomatic (Adjusted)")
+
+t <- rbind(tab1, tab2)
+colnames(t) <- c("Hazard Ratio Estimate", "Lower 95% CI", "Upper 95% CI",
+                    "P-value")
+
+kable(t)
 ```
 
 \newpage
