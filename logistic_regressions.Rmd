@@ -1,0 +1,202 @@
+---
+title: "Logistic Regression Models for the VQI FBVAR Dataset"
+author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
+output: html_document
+---
+
+```{r library, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
+library(tidyverse)
+library(table1)
+library(survival)
+library(Hmisc)
+library(ggplot2)
+library(ggpubr)
+library(corrplot)
+library(caret)
+library(survminer)
+library(knitr)
+library(kableExtra)
+library(finalfit)
+library(broom)
+
+```
+
+```{r setup wd}
+## ------------- working directories for Lily ----------
+wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+path_lily = c("../data/FBVAR.csv")
+
+
+## ------------- working directories for Jenn ----------
+# wd_jenn = 
+# path_jenn = 
+
+## ------------- working directories for Thu ----------
+wd_thu = '/Users/thuvu/Desktop/Comparative-analysis-of-treatments-of-CAA'
+path_thu = c("FBVAR.csv")
+
+## ------------- read data ----------
+setwd(wd_lily)
+FBVAR = read.csv(path_lily)
+
+# setwd(wd_jenn)
+# FBVAR = read.csv(path_jenn)
+
+# setwd(wd_thu)
+# FBVAR = read.csv(path_thu)
+
+```
+
+Variables to adjust for:
+
+- cluster on `CENTERID` 
+
+- `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`
+
+- `PATHOLOGY`, `extent`, `NUM_TREATED_BRANCHES`, `NUM_TREATED_RENALS`, `OCCLUDED_SMA`
+
+Outcome variables:
+
+- `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`, `POSTOP_COMPLICATIONS`, `POSTOP_DIALYSIS`, `POSTOP_LEGEMBO`, `POSTOP_CEREBROSX`, `POSTOP_RESPIRATORY`, `POSTOP_SPINAL_ISCHEMIA`, `RETX_R_RTOR`, `BRANCH_POST`
+
+
+# Logistic regression for categorical outcomes
+
+
+```{r}
+## ------------- modify variables class----------
+
+names <- c('PRESENTATION','POSTOP_LOS', 'POSTOP_COMPLICATIONS', 'POSTOP_DIALYSIS', 'POSTOP_LEGEMBO', 'POSTOP_CEREBROSX', 'POSTOP_RESPIRATORY', 'POSTOP_SPINAL_ISCHEMIA', 'RETX_R_RTOR', 'BRANCH_POST','AGECAT', 'GENDER', 'PREOP_SMOKING', 'PRIOR_AORSURG', 'PRIOR_CHF', 'PATHOLOGY', 'extent', 'NUM_TREATED_BRANCHES', 'NUM_TREATED_RENALS','OCCLUDED_RENAL', 'OCCLUDED_SMA', 'OCCLUDED_CELIAC','ARMNECK_ACCESS','CENTERID')
+FBVAR[,names] <- lapply(FBVAR[,names] , factor)
+
+```
+
+
+## Stroke: 
+
+ARMNECK_ACCESS => POSTOP_CEREBROSX 
+
+`extent`, `PATHOLOGY`
+
+```{r fig.cap='Odds ratio plot for stroke',fig.width=10,fig.height=6}
+
+## ------------- stroke ----------
+
+## ------------- glm ----------
+
+# lr_stroke = glm(POSTOP_CEREBROSX ~ PRESENTATION+ AGECAT + GENDER + PREOP_SMOKING+ PRIOR_AORSURG + PRIOR_CHF + PATHOLOGY + extent+NUM_TREATED_BRANCHES+ NUM_TREATED_RENALS+ OCCLUDED_RENAL+OCCLUDED_SMA+OCCLUDED_CELIAC+ARMNECK_ACCESS,
+#     data = FBVAR, family = binomial)
+# 
+# table2_stroke = lr_stroke %>% tidy(conf.int = TRUE, exp = TRUE)
+# knitr::kable(table2_stroke,caption = 'Logistic regression for stroke')
+# 
+# table2_stroke = lr_stroke %>% summary %>% coef %>% round(3) %>% 
+#   as_tibble(rownames="Coefficient") %>% select(1,2,3,5)
+# knitr::kable(table2_stroke,caption = 'Logistic regression for stroke')
+# 
+# test %>% glance() %>% as_tibble() %>% knitr::kable()
+
+## ------------- finalfit with PATHOLOGY and extent ----------
+explanatory = c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY' ,'extent', 'NUM_TREATED_BRANCHES','NUM_TREATED_RENALS','ARMNECK_ACCESS')
+
+table2_stroke = FBVAR %>% finalfit(
+  dependent = 'POSTOP_CEREBROSX',
+  explanatory =  explanatory ,
+  metrics = TRUE)
+
+knitr::kable(table2_stroke[[1]],caption = 'Logistic regression for stroke')
+knitr::kable(table2_stroke[[2]])
+
+## ------------- OR plot ----------
+FBVAR %>% or_plot(
+  dependent = 'POSTOP_CEREBROSX',
+  explanatory =  explanatory,
+  breaks = c(0.5, 1, 5, 10, 20))
+
+```
+
+
+## Spinal cord model:  
+
+POSTOP_SPINALDRAIN and OCCLUDED_CELIAC => POSTOP_SPINAL_ISCHEMIA 
+
+```{r fig.cap='Odds ratio plot for spinal cord ischemia',fig.width=10,fig.height=8}
+
+## ------------- spinal cord ischemia  ----------
+
+## ------------- finalfit ----------
+explanatory = c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY' ,'extent', 'NUM_TREATED_BRANCHES', 'OCCLUDED_CELIAC','POSTOP_SPINALDRAIN')
+
+table2_SCI = FBVAR %>% finalfit(
+  dependent = 'POSTOP_SPINAL_ISCHEMIA',
+  explanatory =  explanatory ,
+  metrics = TRUE)
+
+knitr::kable(table2_SCI[[1]],caption = 'Logistic regression for spinal cord ischemia')
+knitr::kable(table2_SCI[[2]])
+
+## ------------- OR plot ----------
+
+FBVAR %>% or_plot(
+  dependent = 'POSTOP_SPINAL_ISCHEMIA',
+  explanatory =  explanatory,
+  breaks = c(0.5, 1, 5, 10, 20))
+
+```
+
+## Dialysis model: 
+
+OCCLUDED_RENAL => POSTOP_DIALYSIS
+
+`extent`, `AGECAT`
+
+```{r fig.cap='Odds ratio plot for dialysis',fig.width=10,fig.height=8}
+
+## ------------- dialysis  ----------
+
+## ------------- finalfit ----------
+explanatory = c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY' ,'extent', 'NUM_TREATED_BRANCHES','NUM_TREATED_RENALS','OCCLUDED_RENAL')
+
+table2_DLS = FBVAR %>% finalfit(
+  dependent = 'POSTOP_DIALYSIS',
+  explanatory =  explanatory ,
+  metrics = TRUE)
+
+knitr::kable(table2_DLS[[1]],caption = 'Logistic regression for dialysis')
+knitr::kable(table2_DLS[[2]])
+
+## ------------- OR plot ----------
+
+FBVAR %>% or_plot(
+  dependent = 'POSTOP_DIALYSIS',
+  explanatory =  explanatory,
+  breaks = c(0.5, 1, 5, 10, 20))
+
+```
+
+## POSTOP_LOS
+
+## POSTOP_COMPLICATIONS
+
+## POSTOP_DIALYSIS
+
+## POSTOP_LEGEMBO
+
+## POSTOP_CEREBROSX
+
+## POSTOP_RESPIRATORY
+
+## POSTOP_SPINAL_ISCHEMIA
+
+## RETX_R_RTOR
+
+## BRANCH_POST
+
+
+\newpage
+
+## Code Appendix
+
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE,include=TRUE}
+```

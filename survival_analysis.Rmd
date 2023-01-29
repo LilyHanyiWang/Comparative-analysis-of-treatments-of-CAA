@@ -1,5 +1,5 @@
 ---
-title: "Adjustment Analysis for the VQI FBVAR Dataset"
+title: "Survival Analysis for the VQI FBVAR Dataset"
 author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
 output: pdf_document
 ---
@@ -24,8 +24,8 @@ library(kableExtra)
 
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
-# wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
-# path_lily = c("../data/FBVAR.csv")
+wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+path_lily = c("../data/FBVAR.csv")
 
 
 ## ------------- working directories for Jenn ----------
@@ -37,30 +37,19 @@ wd_thu = '/Users/thuvu/Desktop/Comparative-analysis-of-treatments-of-CAA'
 path_thu = c("FBVAR.csv")
 
 ## ------------- read data ----------
-# setwd(wd_lily)
-# FBVAR = read.csv(path_lily)
+setwd(wd_lily)
+FBVAR = read.csv(path_lily)
 
 # setwd(wd_jenn)
 # FBVAR = read.csv(path_jenn)
 
-setwd(wd_thu)
-FBVAR = read.csv(path_thu)
+# setwd(wd_thu)
+# FBVAR = read.csv(path_thu)
 
 ```
 
-## Correlation matrix
 
-```{r}
-## Correlation matrix
-matrix <- FBVAR %>%
-    select_if(is.numeric) %>% subset(., select = -1)%>%
-    cor(.,use = "complete")
-
-corrplot(matrix, method="number")
-
-```
-
-## Survival analysis
+# Cox proportional hazards model for survival analysis
 
 Unadjusted survival curves. Time scale changed from calendar days to calendar years. Used log rank test to produce p-value. Median survival never reached. 
 
