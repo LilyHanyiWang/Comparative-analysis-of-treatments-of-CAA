@@ -25,24 +25,24 @@ library(kableExtra)
 
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
-wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
-path_lily = c("../data/FBVAR.csv")
+#wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+# path_lily = c("../data/FBVAR.csv")
 
 
 ## ------------- working directories for Jenn ----------
-# wd_jenn = 
-# path_jenn = 
+wd_jenn = '/Users/jenniferci/Desktop/stlp new laptop/Capstone/Comparative-analysis-of-treatments-of-CAA-main'
+path_jenn = c("FBVAR.csv")
 
 ## ------------- working directories for Thu ----------
-wd_thu = '/Users/thuvu/Desktop/Comparative-analysis-of-treatments-of-CAA'
-path_thu = c("FBVAR.csv")
+# wd_thu = '/Users/thuvu/Desktop/Comparative-analysis-of-treatments-of-CAA'
+# path_thu = c("FBVAR.csv")
 
 ## ------------- read data ----------
-setwd(wd_lily)
-FBVAR = read.csv(path_lily)
+#setwd(wd_lily)
+#FBVAR = read.csv(path_lily)
 
-# setwd(wd_jenn)
-# FBVAR = read.csv(path_jenn)
+setwd(wd_jenn)
+FBVAR = read.csv(path_jenn)
 
 # setwd(wd_thu)
 # FBVAR = read.csv(path_thu)
@@ -50,17 +50,111 @@ FBVAR = read.csv(path_lily)
 ```
 
 # Generalized linear models with the Generalized Estimating Equations for continuous outcomes 
-
-
-## Correlation matrix
-
 ```{r}
+library(geepack)
+library(gtsummary)
+
+# repeated patients, need id, geeglm needs complete data, extent is not complete
+LOS<-geeglm(TOTAL_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES+extent
+            , data=na.omit(FBVAR), id = CENTERID, corstr = "independence") 
+summary(LOS)
+LOS %>%tbl_regression
+
+#adjust<-c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY','NUM_TREATED_BRANCHES')
+#FBVAR %>%
+#  tbl_uvregression(
+#    y = TOTAL_LOS, 
+#    x = PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES,
+#    method = geepack::geeglm,
+#    method.args = list(id = X+CENTERID, corstr = "independence"),
+#    include = all_of(adjust)
+#  ) %>%
+#  as_kable()
+
+
+ICU<-geeglm(ICUSTAY ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES#+extent
+            , data=FBVAR, id = CENTERID, corstr = "independence") 
+ICU %>%tbl_regression
+
+
+
+
+POSTOP_PRBC<-geeglm(POSTOP_PRBC ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES, data=FBVAR, id = CENTERID+X, corstr = "independence") 
+POSTOP_PRBC %>%tbl_regression
+
+POSTOP_HIGHCREAT<-geeglm(POSTOP_HIGHCREAT ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES#+extent
+                         , data=FBVAR, id = CENTERID, corstr = "independence") 
+POSTOP_HIGHCREAT %>%tbl_regression
+
+
+POSTOP_INTISCH<-geeglm(POSTOP_INTISCH ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES#+extent
+                       , data=FBVAR, id = CENTERID, corstr = "independence") 
+POSTOP_INTISCH %>%tbl_regression
+
+#model<-geeglm(as.numeric(POSTOP_DIALYSIS)~PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES, family=binomial(link = "logit"), data=FBVAR, id = X, corstr = "independence")
+
+
+#model<-geeglm(outcome~predictor+confounder, family=binomial(link = "logit"), 
+#data=na.omit(data), corstr='ar1', id=id, std.err="san.se")
+#TOTAL_LOS
+
+#ICUSTAY
+#POSTOP_PRBC
+#POSTOP_HIGHCREAT
+
+#POSTOP_INTISCH
+
+
+
+```
+
+
+
+
+
+
 ## Correlation matrix
+```{r fig.height=20, fig.width=20}
+library(corrplot)
+library(tidyverse)
+library(caret)
+library(ggcorrplot)
+
 matrix <- FBVAR %>%
     select_if(is.numeric) %>% subset(., select = -1)%>%
     cor(.,use = "complete")
 
 corrplot(matrix, method="number")
+
+
+
+#select dataset that column are not numeric
+matrix <- FBVAR %>% select_if(negate(is.numeric))
+
+  
+# find out the variables
+lapply(matrix[,], unique)
+sapply(lapply(matrix, unique), length)
+
+#select if more than one variable
+y<-matrix %>%select_if(function(col) length(unique(col))==2)
+
+# Convert all columns to factor
+data3 <- as.data.frame(unclass(y),                     
+                       stringsAsFactors = TRUE)
+
+
+
+ model.matrix(~0 +., data=data3) %>% 
+  cor(use="pairwise.complete.obs") %>%
+  ggcorrplot(show.diag = F, type="lower", lab=TRUE, lab_size=2)
+
+
+
+
+str(y) 
+
+
 
 ```
 
