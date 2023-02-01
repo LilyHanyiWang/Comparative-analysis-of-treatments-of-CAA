@@ -7,25 +7,19 @@ output: html_document
 ```{r library, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
 library(tidyverse)
-library(table1)
-library(survival)
 library(Hmisc)
 library(ggplot2)
 library(ggpubr)
-library(corrplot)
-library(caret)
-library(survminer)
 library(knitr)
-library(kableExtra)
 library(finalfit)
-library(broom)
-
+library(geepack)
+library(gtsummary)
 ```
 
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
 wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
-path_lily = c("../data/FBVAR.csv")
+path_lily = c("../data/TEVAR_PROC.csv")
 
 
 ## ------------- working directories for Jenn ----------
@@ -38,7 +32,7 @@ path_thu = c("FBVAR.csv")
 
 ## ------------- read data ----------
 setwd(wd_lily)
-FBVAR = read.csv(path_lily)
+TEVAR_PROC = read.csv(path_lily)
 
 # setwd(wd_jenn)
 # FBVAR = read.csv(path_jenn)
@@ -52,32 +46,44 @@ Variables to adjust for:
 
 - cluster on `CENTERID` 
 
-- `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`
+- `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PREOP_DIALYSIS`
 
-- `PATHOLOGY`, `extent`, `NUM_TREATED_BRANCHES`, `NUM_TREATED_RENALS`, `OCCLUDED_SMA`
+- `PATHOLOGY`, `extent`
+
+In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Type 4 TAAA"; "Type 1 TAAA", "Type 2 TAAA", "Type 3 TAAA", with "Type 5 TAAA". Now `extent` is a binary variable, Juxtarenal or not.
 
 Outcome variables:
 
-- `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`, `POSTOP_COMPLICATIONS`, `POSTOP_DIALYSIS`, `POSTOP_LEGEMBO`, `POSTOP_CEREBROSX`, `POSTOP_RESPIRATORY`, `POSTOP_SPINAL_ISCHEMIA`, `RETX_R_RTOR`, `BRANCH_POST`
+- `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`, `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`
 
 
 # Logistic regression for categorical outcomes
 
 
 ```{r}
-## ------------- modify variables class----------
+## ------------- modify variables ----------
 
-names <- c('PRESENTATION','POSTOP_LOS', 'POSTOP_COMPLICATIONS', 'POSTOP_DIALYSIS', 'POSTOP_LEGEMBO', 'POSTOP_CEREBROSX', 'POSTOP_RESPIRATORY', 'POSTOP_SPINAL_ISCHEMIA', 'RETX_R_RTOR', 'BRANCH_POST','AGECAT', 'GENDER', 'PREOP_SMOKING', 'PRIOR_AORSURG', 'PRIOR_CHF', 'PATHOLOGY', 'extent', 'NUM_TREATED_BRANCHES', 'NUM_TREATED_RENALS','OCCLUDED_RENAL', 'OCCLUDED_SMA', 'OCCLUDED_CELIAC','ARMNECK_ACCESS','CENTERID')
-FBVAR[,names] <- lapply(FBVAR[,names] , factor)
+names <- c('PRESENTATION','POSTOP_LOS', 'POSTOP_COMPLICATIONS', 'POSTOP_DIALYSIS', 'POSTOP_LEGEMBO', 'POSTOP_CEREBROSX', 'POSTOP_RESPIRATORY', 'POSTOP_SPINAL_ISCHEMIA', 'RETX_R_RTOR', 'BRANCH_POST','AGECAT', 'GENDER', 'PREOP_SMOKING', 'PRIOR_AORSURG', 'PRIOR_CHF', 'PATHOLOGY', 'extent', 'NUM_TREATED_BRANCHES', 'NUM_TREATED_RENALS','OCCLUDED_RENAL', 'OCCLUDED_SMA', 'OCCLUDED_CELIAC','ARMNECK_ACCESS','CENTERID','PREOP_DIALYSIS')
+TEVAR_PROC[,names] <- lapply(TEVAR_PROC[,names] , factor)
+
+TEVAR_PROC = TEVAR_PROC %>%
+  mutate(extent = factor(extent,levels = c("Juxtarenal AAA","Type 1 TAAA","Type 2 TAAA","Type 3 TAAA","Type 4 TAAA","Type 5 TAAA"),labels = c('Juxtarenal','No','No','No','Juxtarenal','No')))
+
+
+
+# #count unique values for each variable
+# sapply(lapply(TEVAR_PROC, unique), length)
+# 
+# #display unique values for each variable
+# lapply(TEVAR_PROC[explanatory], unique)
+
 
 ```
 
 
-## Stroke: 
+## Stroke: POSTOP_CEREBROSX
 
-ARMNECK_ACCESS => POSTOP_CEREBROSX 
-
-`extent`, `PATHOLOGY`
+Also account for `ARMNECK_ACCESS`
 
 ```{r fig.cap='Odds ratio plot for stroke',fig.width=10,fig.height=6}
 
@@ -98,39 +104,37 @@ ARMNECK_ACCESS => POSTOP_CEREBROSX
 # test %>% glance() %>% as_tibble() %>% knitr::kable()
 
 ## ------------- finalfit with PATHOLOGY and extent ----------
-explanatory = c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY' ,'extent', 'NUM_TREATED_BRANCHES','NUM_TREATED_RENALS','ARMNECK_ACCESS')
+explanatory = c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING', 'PREOP_DIALYSIS','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY' ,'extent')
 
-table2_stroke = FBVAR %>% finalfit(
+table2_stroke = TEVAR_PROC %>% finalfit(
   dependent = 'POSTOP_CEREBROSX',
-  explanatory =  explanatory ,
+  explanatory =  append(explanatory,'ARMNECK_ACCESS') ,
   metrics = TRUE)
 
 knitr::kable(table2_stroke[[1]],caption = 'Logistic regression for stroke')
 knitr::kable(table2_stroke[[2]])
 
 ## ------------- OR plot ----------
-FBVAR %>% or_plot(
+TEVAR_PROC %>% or_plot(
   dependent = 'POSTOP_CEREBROSX',
-  explanatory =  explanatory,
+  explanatory =  append(explanatory,'ARMNECK_ACCESS'),
   breaks = c(0.5, 1, 5, 10, 20))
 
 ```
 
 
-## Spinal cord model:  
+## Spinal cord ischemia model: POSTOP_SPINAL_ISCHEMIA
 
-POSTOP_SPINALDRAIN and OCCLUDED_CELIAC => POSTOP_SPINAL_ISCHEMIA 
+Also account for `POSTOP_SPINALDRAIN` and `OCCLUDED_CELIAC`
 
 ```{r fig.cap='Odds ratio plot for spinal cord ischemia',fig.width=10,fig.height=8}
 
 ## ------------- spinal cord ischemia  ----------
 
 ## ------------- finalfit ----------
-explanatory = c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY' ,'extent', 'NUM_TREATED_BRANCHES', 'OCCLUDED_CELIAC','POSTOP_SPINALDRAIN')
-
-table2_SCI = FBVAR %>% finalfit(
+table2_SCI = TEVAR_PROC %>% finalfit(
   dependent = 'POSTOP_SPINAL_ISCHEMIA',
-  explanatory =  explanatory ,
+  explanatory =   append(explanatory,c('POSTOP_SPINALDRAIN','OCCLUDED_CELIAC') ) ,
   metrics = TRUE)
 
 knitr::kable(table2_SCI[[1]],caption = 'Logistic regression for spinal cord ischemia')
@@ -138,29 +142,26 @@ knitr::kable(table2_SCI[[2]])
 
 ## ------------- OR plot ----------
 
-FBVAR %>% or_plot(
+TEVAR_PROC %>% or_plot(
   dependent = 'POSTOP_SPINAL_ISCHEMIA',
-  explanatory =  explanatory,
+  explanatory =  append(explanatory,c('POSTOP_SPINALDRAIN','OCCLUDED_CELIAC') ) ,
   breaks = c(0.5, 1, 5, 10, 20))
 
 ```
 
-## Dialysis model: 
+## Dialysis model: POSTOP_DIALYSIS
 
-OCCLUDED_RENAL => POSTOP_DIALYSIS
+Also account for `OCCLUDED_RENAL`
 
-`extent`, `AGECAT`
 
 ```{r fig.cap='Odds ratio plot for dialysis',fig.width=10,fig.height=8}
 
 ## ------------- dialysis  ----------
 
 ## ------------- finalfit ----------
-explanatory = c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY' ,'extent', 'NUM_TREATED_BRANCHES','NUM_TREATED_RENALS','OCCLUDED_RENAL')
-
-table2_DLS = FBVAR %>% finalfit(
+table2_DLS = TEVAR_PROC %>% finalfit(
   dependent = 'POSTOP_DIALYSIS',
-  explanatory =  explanatory ,
+  explanatory =  append(explanatory,'OCCLUDED_RENAL') ,
   metrics = TRUE)
 
 knitr::kable(table2_DLS[[1]],caption = 'Logistic regression for dialysis')
@@ -168,26 +169,40 @@ knitr::kable(table2_DLS[[2]])
 
 ## ------------- OR plot ----------
 
-FBVAR %>% or_plot(
+TEVAR_PROC %>% or_plot(
   dependent = 'POSTOP_DIALYSIS',
-  explanatory =  explanatory,
+  explanatory =  append(explanatory,'OCCLUDED_RENAL'),
   breaks = c(0.5, 1, 5, 10, 20))
 
 ```
 
 ## POSTOP_LOS
 
+- cluster on `CENTERID` 
+
+- `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PREOP_DIALYSIS`
+
+- `PATHOLOGY`, `extent`
+
+
+```{r}
+# geeglm(POSTOP_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent,
+#        data = na.omit(TEVAR_PROC),
+#        id = CENTERID,
+#        family = binomial,
+#        corstr = "independence")
+
+```
+
+
 ## POSTOP_COMPLICATIONS
 
-## POSTOP_DIALYSIS
 
 ## POSTOP_LEGEMBO
 
-## POSTOP_CEREBROSX
 
 ## POSTOP_RESPIRATORY
 
-## POSTOP_SPINAL_ISCHEMIA
 
 ## RETX_R_RTOR
 
