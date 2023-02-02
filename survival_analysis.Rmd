@@ -19,6 +19,8 @@ library(caret)
 library(survminer)
 library(knitr)
 library(kableExtra)
+library(gtsummary)
+library(flextable)
 
 ```
 
@@ -34,17 +36,17 @@ path_lily = c("../data/FBVAR.csv")
 
 ## ------------- working directories for Thu ----------
 wd_thu = '/Users/thuvu/Desktop/Comparative-analysis-of-treatments-of-CAA'
-path_thu = c("FBVAR.csv")
+path_thu = c("TEVAR_PROC.csv")
 
 ## ------------- read data ----------
-setwd(wd_lily)
-FBVAR = read.csv(path_lily)
+# setwd(wd_lily)
+# FBVAR = read.csv(path_lily)
 
 # setwd(wd_jenn)
 # FBVAR = read.csv(path_jenn)
 
-# setwd(wd_thu)
-# FBVAR = read.csv(path_thu)
+setwd(wd_thu)
+TEVAR_PROC = read.csv(path_thu)
 
 ```
 
@@ -57,64 +59,55 @@ Any changes needed? (e.g, time scale, colors, change to at risk table, add numbe
 
 ```{r, fig.width=8, fig.height=6}
 ## Survival analysis
-# event = 1 for uncensored (Dead), event = 0 for censored (Alive)
-FBVAR$event <- ifelse(FBVAR$DEAD=="TRUE", 1, 0)
-
-tte <- FBVAR %>% with(Surv(PROC_SURVIVALDAYS/365, event))
+tte <- TEVAR_PROC %>% with(Surv(PROC_SURVIVALDAYS/365, DEAD))
 
 # compute survival curves
-fit <- survfit(tte ~ PRESENTATION, data=FBVAR)
+fit <- survfit(tte ~ PRESENTATION, data=TEVAR_PROC)
 
-# plotting Kaplan-Meier Curves
 ggsurvplot(fit,
            pval = TRUE, 
            risk.table = TRUE, 
            linetype = "strata",
            surv.median.line = "hv", 
            ggtheme = theme_bw(), 
-           xlab = "Time in years",
+           xlab = "Time (Year)",
            legend.labs = c("Asymptomatic", "Symptomatic"),
-           break.time.by=1) 
+           break.time.by=1)
+
 ```
 
 Univariate (unadjusted) and Multivariate (adjusted) Cox Proportional Hazards Models. Reference group is asymptomatic patients. 
 
-Adjusted for the following variables: `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PATHOLOGY`, `extent`, `POSTOP_LOS`, `POSTOP_COMPLICATIONS`, `POSTOP_DIALYSIS`, `POSTOP_LEGEMBO`, `POSTOP_CEREBROSX`, `POSTOP_RESPIRATORY`, `POSTOP_SPINAL_ISCHEMIA` , `RETX_R_RTOR` , and `BRANCH_POST`. 
+Variables to adjust for:
 
-Hazard ratio went from 1.88 to 1.58 after adjustment (0.3 difference). 
+- cluster on `CENTERID` 
 
-```{r, fig.width=8, fig.height=6}
+- `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PREOP_DIALYSIS`
+
+- `PATHOLOGY`, `extent`
+
+In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Type 4 TAAA"; "Type 1 TAAA", "Type 2 TAAA", "Type 3 TAAA", with "Type 5 TAAA". Now `extent` is a binary variable, Juxtarenal or not. 
+
+```{r, fig.pos="H"}
+TEVAR_PROC = TEVAR_PROC %>%
+  mutate(extent = factor(extent,levels = c("Juxtarenal AAA","Type 1 TAAA","Type 2 TAAA",
+                                           "Type 3 TAAA","Type 4 TAAA","Type 5 TAAA"),
+                         labels = c('Juxtarenal','No','No','No','Juxtarenal','No')))
+
 # Unadjusted survival model
-mod.cox1 <- coxph(tte ~ PRESENTATION, data=FBVAR)
-
-tab1 <- data.frame(
-  Estimate = round(summary(mod.cox1)$conf.int[1],2),
-  "Lower 95% CI" = round(summary(mod.cox1)$conf.int[3],2),
-  "Upper 95% CI" = round(summary(mod.cox1)$conf.int[4],2),
-  "P-value" = "<0.001"
-)
-rownames(tab1) <- c("Symptomatic (Unadjusted)")
+mod.cox1 <- coxph(tte ~ PRESENTATION, data=TEVAR_PROC)
 
 # Adjusted survival model
-mod.cox2 <- coxph(tte ~ PRESENTATION + cluster(CENTERID) + AGECAT + GENDER + PREOP_SMOKING 
-                 + PRIOR_AORSURG + PRIOR_CHF + PATHOLOGY + extent + POSTOP_LOS
-                 + POSTOP_COMPLICATIONS + POSTOP_DIALYSIS + POSTOP_LEGEMBO + POSTOP_CEREBROSX
-                 + POSTOP_RESPIRATORY + POSTOP_SPINAL_ISCHEMIA + RETX_R_RTOR + BRANCH_POST, 
-                 data=FBVAR)
+mod.cox2 <- coxph(tte ~ PRESENTATION + cluster(CENTERID) + AGECAT + GENDER + 
+                    PREOP_SMOKING + PRIOR_AORSURG + PRIOR_CHF + 
+                    PREOP_DIALYSIS + PATHOLOGY + extent , 
+                  data=TEVAR_PROC)
 
-tab2 <- data.frame(
-  Estimate = round(summary(mod.cox2)$conf.int[1],2),
-  "Lower 95% CI" = round(summary(mod.cox2)$conf.int[1,3],2),
-  "Upper 95% CI" = round(summary(mod.cox2)$conf.int[1,4],2),
-  "P-value" = "0.01"
-)
-rownames(tab2) <- c("Symptomatic (Adjusted)")
+t1 <- mod.cox1 %>% tbl_regression(exponentiate = TRUE)
+t2 <- mod.cox2 %>% tbl_regression(exponentiate = TRUE)
 
-t <- rbind(tab1, tab2)
-colnames(t) <- c("Hazard Ratio Estimate", "Lower 95% CI", "Upper 95% CI",
-                    "P-value")
-
-kable(t)
+t1 %>% as_flex_table()
+t2 %>% as_flex_table()
 ```
 
 \newpage
