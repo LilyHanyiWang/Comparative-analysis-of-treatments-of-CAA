@@ -1,5 +1,5 @@
 ---
-title: "Logistic Regression Models for the VQI FBVAR Dataset"
+title: "Logistic Regression Models with GEE for the VQI FBVAR Dataset"
 author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
 output: html_document
 ---
@@ -54,28 +54,27 @@ In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Ty
 
 Outcome variables:
 
-- `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`, `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`
+- `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `TOTAL_LOS`, `POSTOP_LOS`, `ICUSTAY`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`
 
 
 # Logistic regression for categorical outcomes
 
 
 ```{r}
-## ------------- modify variables ----------
-
-names <- c('PRESENTATION','POSTOP_LOS', 'POSTOP_COMPLICATIONS', 'POSTOP_DIALYSIS', 'POSTOP_LEGEMBO', 'POSTOP_CEREBROSX', 'POSTOP_RESPIRATORY', 'POSTOP_SPINAL_ISCHEMIA', 'RETX_R_RTOR', 'BRANCH_POST','AGECAT', 'GENDER', 'PREOP_SMOKING', 'PRIOR_AORSURG', 'PRIOR_CHF', 'PATHOLOGY', 'extent', 'NUM_TREATED_BRANCHES', 'NUM_TREATED_RENALS','OCCLUDED_RENAL', 'OCCLUDED_SMA', 'OCCLUDED_CELIAC','ARMNECK_ACCESS','CENTERID','PREOP_DIALYSIS')
-TEVAR_PROC[,names] <- lapply(TEVAR_PROC[,names] , factor)
-
+## ------------- modify some variables ----------
 TEVAR_PROC = TEVAR_PROC %>%
-  mutate(extent = factor(extent,levels = c("Juxtarenal AAA","Type 1 TAAA","Type 2 TAAA","Type 3 TAAA","Type 4 TAAA","Type 5 TAAA"),labels = c('Juxtarenal','No','No','No','Juxtarenal','No')))
+  mutate(extent = factor(extent,levels = c("Juxtarenal AAA","Type 1 TAAA","Type 2 TAAA","Type 3 TAAA","Type 4 TAAA","Type 5 TAAA"),labels = c('Juxtarenal','No','No','No','Juxtarenal','No'))) %>%
+  mutate(POSTOP_LOS = case_when(POSTOP_LOS>7 ~ '> 7',
+                                TRUE ~ '<= 7')) %>%
+  mutate(ICUSTAY= case_when(ICUSTAY>4 ~ '> 4',
+                            TRUE ~ '<= 4')) %>%
+  mutate(TOTAL_LOS= case_when(TOTAL_LOS>7 ~ '> 7',
+                                TRUE ~ '<= 7'))
 
 
-
-# #count unique values for each variable
-# sapply(lapply(TEVAR_PROC, unique), length)
-# 
-# #display unique values for each variable
-# lapply(TEVAR_PROC[explanatory], unique)
+## ------------- change variables to factor ----------
+names <- c('PRESENTATION','POSTOP_LOS', 'TOTAL_LOS','ICUSTAY','POSTOP_COMPLICATIONS', 'POSTOP_DIALYSIS', 'POSTOP_LEGEMBO', 'POSTOP_CEREBROSX', 'POSTOP_RESPIRATORY', 'POSTOP_SPINAL_ISCHEMIA', 'RETX_R_RTOR', 'BRANCH_POST','AGECAT', 'GENDER', 'PREOP_SMOKING', 'PRIOR_AORSURG', 'PRIOR_CHF', 'PATHOLOGY', 'extent', 'NUM_TREATED_BRANCHES', 'NUM_TREATED_RENALS','OCCLUDED_RENAL', 'OCCLUDED_SMA', 'OCCLUDED_CELIAC','ARMNECK_ACCESS','CENTERID','PREOP_DIALYSIS')
+TEVAR_PROC[,names] <- lapply(TEVAR_PROC[,names] , factor)
 
 
 ```
@@ -89,8 +88,7 @@ Also account for `ARMNECK_ACCESS`
 
 ## ------------- stroke ----------
 
-## ------------- glm ----------
-
+## ------------- function: glm ----------
 # lr_stroke = glm(POSTOP_CEREBROSX ~ PRESENTATION+ AGECAT + GENDER + PREOP_SMOKING+ PRIOR_AORSURG + PRIOR_CHF + PATHOLOGY + extent+NUM_TREATED_BRANCHES+ NUM_TREATED_RENALS+ OCCLUDED_RENAL+OCCLUDED_SMA+OCCLUDED_CELIAC+ARMNECK_ACCESS,
 #     data = FBVAR, family = binomial)
 # 
@@ -103,7 +101,7 @@ Also account for `ARMNECK_ACCESS`
 # 
 # test %>% glance() %>% as_tibble() %>% knitr::kable()
 
-## ------------- finalfit with PATHOLOGY and extent ----------
+## ------------- function: finalfit ----------
 explanatory = c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING', 'PREOP_DIALYSIS','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY' ,'extent')
 
 table2_stroke = TEVAR_PROC %>% finalfit(
@@ -120,6 +118,7 @@ TEVAR_PROC %>% or_plot(
   explanatory =  append(explanatory,'ARMNECK_ACCESS'),
   breaks = c(0.5, 1, 5, 10, 20))
 
+
 ```
 
 
@@ -131,21 +130,7 @@ Also account for `POSTOP_SPINALDRAIN` and `OCCLUDED_CELIAC`
 
 ## ------------- spinal cord ischemia  ----------
 
-## ------------- finalfit ----------
-table2_SCI = TEVAR_PROC %>% finalfit(
-  dependent = 'POSTOP_SPINAL_ISCHEMIA',
-  explanatory =   append(explanatory,c('POSTOP_SPINALDRAIN','OCCLUDED_CELIAC') ) ,
-  metrics = TRUE)
 
-knitr::kable(table2_SCI[[1]],caption = 'Logistic regression for spinal cord ischemia')
-knitr::kable(table2_SCI[[2]])
-
-## ------------- OR plot ----------
-
-TEVAR_PROC %>% or_plot(
-  dependent = 'POSTOP_SPINAL_ISCHEMIA',
-  explanatory =  append(explanatory,c('POSTOP_SPINALDRAIN','OCCLUDED_CELIAC') ) ,
-  breaks = c(0.5, 1, 5, 10, 20))
 
 ```
 
@@ -158,39 +143,48 @@ Also account for `OCCLUDED_RENAL`
 
 ## ------------- dialysis  ----------
 
-## ------------- finalfit ----------
-table2_DLS = TEVAR_PROC %>% finalfit(
-  dependent = 'POSTOP_DIALYSIS',
-  explanatory =  append(explanatory,'OCCLUDED_RENAL') ,
-  metrics = TRUE)
 
-knitr::kable(table2_DLS[[1]],caption = 'Logistic regression for dialysis')
-knitr::kable(table2_DLS[[2]])
+```
 
-## ------------- OR plot ----------
+## TOTAL_LOS
 
-TEVAR_PROC %>% or_plot(
-  dependent = 'POSTOP_DIALYSIS',
-  explanatory =  append(explanatory,'OCCLUDED_RENAL'),
-  breaks = c(0.5, 1, 5, 10, 20))
+```{r fig.cap='Odds ratio plot for TOTAL_LOS',fig.width=10,fig.height=8}
+
+## ------------- TOTAL_LOS  ----------
+
+## ------------- function: geeglm  ----------
+
+# geeglm(TOTAL_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent,
+#        data = (TEVAR_PROC),
+#        id = CENTERID,
+#        family = binomial,
+#        corstr = "independence")
+# 
+# 
+# #count unique values for each variable
+# sapply(lapply(TEVAR_PROC, unique), length)
+# 
+# #display unique values for each variable
+# lapply(TEVAR_PROC[explanatory], unique)
+
+
+```
+
+## ICUSTAY
+
+```{r fig.cap='Odds ratio plot for ICUSTAY',fig.width=10,fig.height=8}
+
+## ------------- ICUSTAY  ----------
+
 
 ```
 
 ## POSTOP_LOS
 
-- cluster on `CENTERID` 
+```{r fig.cap='Odds ratio plot for POSTOP_LOS',fig.width=10,fig.height=8}
 
-- `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PREOP_DIALYSIS`
+## ------------- POSTOP_LOS  ----------
 
-- `PATHOLOGY`, `extent`
-
-
-```{r}
-# geeglm(POSTOP_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent,
-#        data = na.omit(TEVAR_PROC),
-#        id = CENTERID,
-#        family = binomial,
-#        corstr = "independence")
 
 ```
 

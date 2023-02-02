@@ -134,6 +134,16 @@ knitr::kable(table1_SOC)
 
 ```
 
+Number of re-intervention table
+
+
+```{r}
+## ------------- table: number of re-intervention ----------
+
+
+```
+
+
 ### Volume Variables 
   
 Volume Variables: `REGIONID`, `CENTERID`, `PHYSICIANID`
