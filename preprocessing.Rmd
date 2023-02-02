@@ -20,7 +20,9 @@ path_lily = c(
   "../data/TEVAR_International_20210712/TEVAR_International_PROC_r12_2_14_20210701.csv",
   "../data/TEVAR_International_20210901/TEVAR_International_LTF_r12_2_14_20210901.csv",
   "../data/TEVAR_International_20210901/TEVAR_International_PROC_r12_2_14_20210901.csv",
-  "../data/TEVAR_PROC.csv")
+  "../data/TEVAR_PROC.csv",
+  "../data/TEVAR_International_202301/TEVAR_International_LTF_20230103.csv",
+  "../data/TEVAR_International_202301/TEVAR_International_PROC_20230103.csv")
 
 ## ------------- read data ----------
 setwd(wd_lily)
@@ -28,28 +30,38 @@ TEVAR_LTF_07 = read.csv(path_lily[1])
 TEVAR_PROC_07 = read.csv(path_lily[2])
 TEVAR_LTF_09 = read.csv(path_lily[3])
 TEVAR_PROC_09 = read.csv(path_lily[4])
+TEVAR_LTF_2301 = read.csv(path_lily[6])
+TEVAR_PROC_2301 = read.csv(path_lily[7])
 
 
 ```
 
 ## Datasets Merging
 
-Compare the data from July 2021 and September 2021. Keep the most updated ones by merging `TEVAR_LTF_07` with `TEVAR_LTF_09`, and `TEVAR_PROC_07` with `TEVAR_PROC_09` separately.
+Compare the data from July 2021, September 2021 and January 2023. Keep the most updated ones by merging LTF and PROC datasets separately.
 
 ```{r}
 ## ------------- merge July and September for PROC and LTF ----------
 
-# find data in LTF July data but not in LTF September data by `PATIENTID`
-# add these data points to the September data
+# select mutual variables
+TEVAR_LTF_2301 = (TEVAR_LTF_2301 %>% select(colnames(TEVAR_LTF_2301)[colnames(TEVAR_LTF_2301) %in% colnames(TEVAR_LTF_09)]))
+
+# find new data and merge the 3 datasets
 TEVAR_LTF <- rbind(TEVAR_LTF_07[! TEVAR_LTF_07$PATIENTID  %in% TEVAR_LTF_09$PATIENTID,],
                    TEVAR_LTF_09)
+TEVAR_LTF <- rbind(TEVAR_LTF_2301[! TEVAR_LTF_2301$PATIENTID  %in% TEVAR_LTF$PATIENTID,],
+                   TEVAR_LTF)
 
 # filter the varaibles in the LTF dataset
 TEVAR_LTF <- TEVAR_LTF %>% select(PATIENTID,PRIMPROCID,DEAD,PROC_SURVIVALDAYS,LTF_NUM_REINT)
 
 # Similar for PROC data 
+TEVAR_PROC_2301 = (TEVAR_PROC_2301 %>% select(colnames(TEVAR_PROC_2301)[colnames(TEVAR_PROC_2301) %in% colnames(TEVAR_PROC_09)]))
+
 TEVAR_PROC <-rbind(TEVAR_PROC_07[! TEVAR_PROC_07$PATIENTID  %in% TEVAR_PROC_09$PATIENTID,],
                    TEVAR_PROC_09)
+TEVAR_PROC <- rbind(TEVAR_PROC_2301[! TEVAR_PROC_2301$PATIENTID  %in% TEVAR_PROC$PATIENTID,],
+                   TEVAR_PROC)
 
 ```
 
