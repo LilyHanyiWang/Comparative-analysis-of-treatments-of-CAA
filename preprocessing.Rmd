@@ -7,7 +7,7 @@ output: pdf_document
 ```{r library, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
 library(tidyverse)
-library('plyr')
+library(plyr)
 library(Hmisc)
 library(table1)
 ```
@@ -26,13 +26,13 @@ path_lily = c(
 
 ## ------------- read data ----------
 setwd(wd_lily)
-TEVAR_LTF_07 = read.csv(path_lily[1])
-TEVAR_PROC_07 = read.csv(path_lily[2])
-TEVAR_LTF_09 = read.csv(path_lily[3])
-TEVAR_PROC_09 = read.csv(path_lily[4])
-TEVAR_LTF_2301 = read.csv(path_lily[6])
-TEVAR_PROC_2301 = read.csv(path_lily[7])
+# TEVAR_LTF_07 = read.csv(path_lily[1])
+# TEVAR_LTF_09 = read.csv(path_lily[3])
+# TEVAR_LTF_2301 = read.csv(path_lily[6])
 
+TEVAR_PROC_07 = read.csv(path_lily[2])
+TEVAR_PROC_09 = read.csv(path_lily[4])
+TEVAR_PROC_2301 = read.csv(path_lily[7])
 
 ```
 
@@ -43,30 +43,28 @@ Compare the data from July 2021, September 2021 and January 2023. Keep the most 
 ```{r}
 ## ------------- merge July and September for PROC and LTF ----------
 
-# select mutual variables
-TEVAR_LTF_2301 = (TEVAR_LTF_2301 %>% select(colnames(TEVAR_LTF_2301)[colnames(TEVAR_LTF_2301) %in% colnames(TEVAR_LTF_09)]))
-
-# find new data and merge the 3 datasets
-TEVAR_LTF <- rbind(TEVAR_LTF_07[! TEVAR_LTF_07$PATIENTID  %in% TEVAR_LTF_09$PATIENTID,],
-                   TEVAR_LTF_09)
-TEVAR_LTF <- rbind(TEVAR_LTF_2301[! TEVAR_LTF_2301$PATIENTID  %in% TEVAR_LTF$PATIENTID,],
-                   TEVAR_LTF)
-
-# filter the varaibles in the LTF dataset
-TEVAR_LTF <- TEVAR_LTF %>% select(PATIENTID,PRIMPROCID,DEAD,PROC_SURVIVALDAYS,LTF_NUM_REINT)
+# # select mutual variables
+# TEVAR_LTF_2301 = (TEVAR_LTF_2301 %>% select(colnames(TEVAR_LTF_2301)[colnames(TEVAR_LTF_2301) %in% colnames(TEVAR_LTF_09)]))
+# 
+# # find new data and merge the 3 datasets
+# TEVAR_LTF <- rbind(TEVAR_LTF_07[! TEVAR_LTF_07$PATIENTID  %in% TEVAR_LTF_09$PATIENTID,],
+#                    TEVAR_LTF_09)
+# TEVAR_LTF <- rbind(TEVAR_LTF_2301[! TEVAR_LTF_2301$PATIENTID  %in% TEVAR_LTF$PATIENTID,],
+#                    TEVAR_LTF)
+# 
+# # filter the varaibles in the LTF dataset
+# TEVAR_LTF <- TEVAR_LTF %>% select(PATIENTID,PRIMPROCID,DEAD,PROC_SURVIVALDAYS,LTF_NUM_REINT)
 
 # Similar for PROC data 
 TEVAR_PROC_2301 = (TEVAR_PROC_2301 %>% select(colnames(TEVAR_PROC_2301)[colnames(TEVAR_PROC_2301) %in% colnames(TEVAR_PROC_09)]))
 
 TEVAR_PROC <-rbind(TEVAR_PROC_07[! TEVAR_PROC_07$PATIENTID  %in% TEVAR_PROC_09$PATIENTID,],
                    TEVAR_PROC_09)
-TEVAR_PROC <- rbind(TEVAR_PROC_2301[! TEVAR_PROC_2301$PATIENTID  %in% TEVAR_PROC$PATIENTID,],
-                   TEVAR_PROC)
+TEVAR_PROC <- rbind(TEVAR_PROC[! TEVAR_PROC$PATIENTID  %in% TEVAR_PROC_2301$PATIENTID,],
+                   TEVAR_PROC_2301)
 
 ```
 
-
-Variables that exists in both LTF and PROC datasets are: `r colnames(TEVAR_PROC)[colnames(TEVAR_PROC) %in% colnames(TEVAR_LTF)]`. Merge by these variables.
 
 We will work on the PROC and LTF datasets separately. The only variable we want to study in the LTF dataset is the re-intervention variable, `LTF_NUM_REINT`.
 
@@ -164,11 +162,48 @@ TEVAR_PROC = TEVAR_PROC %>%
   mutate(DC_ASA = factor(DC_ASA,levels = c(0,1,2,3),labels = c('No','Yes','No','No'))) %>% 
   mutate(DC_P2Y = factor(DC_P2Y,levels =c(0,1,2,3,4,5,6,7),
                          labels = c('No','Yes','Yes','Yes','Yes','Yes','No','No'))) %>% 
-  mutate(DC_STATIN = factor(DC_STATIN,levels = c(0,1,2,3),labels = c('No','Yes','No','No'))) %>%
-  ## merge PREOP_CREAT, R_CR_PRESENT
-  mutate(PREOP_CREAT = coalesce(PREOP_CREAT,R_CR_PRESENT))
+  mutate(DC_STATIN = factor(DC_STATIN,levels = c(0,1,2,3),labels = c('No','Yes','No','No')))
 
+#---------- GFR ----------
+TEVAR_PROC = TEVAR_PROC %>% 
+  mutate(GFR_k = case_when(GENDER == 'male' ~ 0.9,
+                           GENDER == 'female' ~ 0.7)) %>%
+  mutate(GFR_alpha = case_when(GENDER == 'male' ~ -0.302,
+                               GENDER == 'female' ~ -0.241)) %>%
+  mutate(isfemale = case_when(GENDER == 'male' ~ 1,
+                              GENDER == 'female' ~ 1.012)) 
 
+TEVAR_PROC = TEVAR_PROC %>% 
+  mutate(PREOP_min = with(TEVAR_PROC,pmin(PREOP_CREAT/GFR_k,1))) %>%
+  mutate(PREOP_max = with(TEVAR_PROC,pmax(PREOP_CREAT/GFR_k,1))) %>%
+  mutate(POSTOP_min = with(TEVAR_PROC,pmin(POSTOP_HIGHCREAT/GFR_k,1))) %>%
+  mutate(POSTOP_max = with(TEVAR_PROC,pmax(POSTOP_HIGHCREAT/GFR_k,1)))
+
+TEVAR_PROC = TEVAR_PROC %>% 
+  mutate(PREOP_GFR = 142*(PREOP_min^GFR_alpha)*(PREOP_max^(-1.2))*(0.9938^AGE)*(isfemale)) %>%
+  mutate(POSTOP_GFR = 142*(POSTOP_min^GFR_alpha)*(POSTOP_max^(-1.2))*(0.9938^AGE)*(isfemale))
+
+TEVAR_PROC = TEVAR_PROC %>% 
+  mutate(PREOP_GFR_CAT = case_when(PREOP_GFR >= 90 ~ 1,
+                                   PREOP_GFR > 60 & PREOP_GFR < 89 ~ 2,
+                                   PREOP_GFR > 30 & PREOP_GFR < 59 ~ 3,
+                                   PREOP_GFR > 15 & PREOP_GFR < 29 ~ 4,
+                                   PREOP_GFR <15 ~ 5)) %>%
+  mutate(POSTOP_GFR_CAT = case_when(POSTOP_GFR >= 90 ~ 1,
+                                    POSTOP_GFR > 60 & POSTOP_GFR < 89 ~ 2,
+                                    POSTOP_GFR > 30 & POSTOP_GFR < 59 ~ 3,
+                                    POSTOP_GFR > 15 & POSTOP_GFR < 29 ~ 4,
+                                    POSTOP_GFR <15 ~ 5))
+  
+TEVAR_PROC = TEVAR_PROC %>% 
+  mutate(PREOP_GFR_CAT = factor(PREOP_GFR_CAT,levels = c(1,2,3,4,5),
+                                labels = c("Normal or increased","Mildly decreased",
+                                           "Mildly to severely decreased","Severely decreased",
+                                           "End-stage renal disease"))) %>%
+  mutate(POSTOP_GFR_CAT = factor(POSTOP_GFR_CAT,levels = c(1,2,3,4,5),
+                                 labels = c("Normal or increased","Mildly decreased",
+                                            "Mildly to severely decreased","Severely decreased",
+                                            "End-stage renal disease")))
 ```
 
 ### Operative variables
@@ -596,7 +631,9 @@ view(frequency)
 
 TEVAR_PROC = TEVAR_PROC %>%
   filter(PATIENTID!=296651&PATIENTID!=318785&PATIENTID!=374667&PATIENTID!=481088 &
-         PATIENTID!=517721&PATIENTID!=616510&PATIENTID!=686479&PATIENTID!=686759 )
+         PATIENTID!=517721&PATIENTID!=616510&PATIENTID!=686479&PATIENTID!=686759 &
+         PATIENTID!=671047&PATIENTID!=721266&PATIENTID!=723290&PATIENTID!=758461 &
+         PATIENTID!=784327&PATIENTID!=956326  )
 
 ```
 
@@ -607,15 +644,15 @@ Select the variable related to our study. Give them labels for better-looking ta
 ```{r}
 ## -------------variables selection----------
 TEVAR_PROC = TEVAR_PROC %>% select(
-  SURGMONTH,SURGYEAR,
+  SURGMONTH,SURGYEAR, PRIMPROCID,
   PRESENTATION,
-  # Patient demographic and co-morbidities 
-  AGE, AGECAT, GENDER, ETHNICITY, RACE, TRANSFER, PRIMARYINSURER, LIVINGSTATUS, PREOP_FUNCSTATUS, PRIOR_CVD, PRIOR_CAD, PRIOR_CHF, COPD, DIABETES, PREOP_DIALYSIS, HTN, PREOP_SMOKING, PRIOR_CABG, PRIOR_PCI, PRIOR_ANEURREP, STRESS, PREOP_CREAT, DC_ASA,DC_P2Y, DC_STATIN,
-  # Operative Variables 
+  # Patient demographic and co-morbidities
+  AGE, AGECAT, GENDER, ETHNICITY, RACE, TRANSFER, PRIMARYINSURER, LIVINGSTATUS, PREOP_FUNCSTATUS, PRIOR_CVD, PRIOR_CAD, PRIOR_CHF, COPD, DIABETES, PREOP_DIALYSIS, HTN, PREOP_SMOKING, PRIOR_CABG, PRIOR_PCI, PRIOR_ANEURREP, STRESS, PREOP_CREAT,PREOP_GFR,PREOP_GFR_CAT, DC_ASA,DC_P2Y, DC_STATIN,
+  # Operative Variables
   PRIOR_AORSURG, PATHOLOGY, PREOP_MAXAAADIA, URGENCY, PATHOLOGY_ANEURYSM_TYPE, PATHOLOGY_DISSECT_TYPE, PROXZONE_DISEASE, GENHIST, DISTZONE_DISEASE, extent, ANESTHESIA, CONTRAST, EBL, FLUOROTIME, INTRAOP_PRBC,TOTALPROCTIME, IVUSTEE, ACCESS, ARMNECK_ACCESS, AORDEV_NUM, AORDEV_CMOD, DEV_GTYPE, ILIACDEV_END_R, ILIACDEV_END_L, BRANCH_STAGED, BRANCH_LSUB, BRANCH_CELIAC, BRANCH_SMA, BRANCH_RRENAL, BRANCH_LRENAL, ANESTHESIA_GEN_TIMEEXT, POSTOP_SPINALDRAIN, lrenal, rrenal, sma, celiac, lsub, NUM_TREATED_BRANCHES,NUM_TREATED_RENALS,OCCLUDED_RENAL,OCCLUDED_SMA,OCCLUDED_CELIAC,
   # Outcomes
   # LTF_NUM_REINT
-  DEAD, PROC_SURVIVALDAYS,TOTAL_LOS, POSTOP_LOS, AORDEV_TECHSUCC, CONVTOOPEN, LEAKATCOMP_NONE, ICUSTAY, POSTOP_PRBC, POSTOP_VASO, POSTOP_HIGHCREAT, POSTOP_COMPLICATIONS, ACCESS_COMPLICATION, POSTOP_AH, POSTOP_CEREBROSX, POSTOP_RESPIRATORY, POSTOP_DIALYSIS, POSTOP_ARMEMBO, POSTOP_LEGEMBO, POSTOP_LEGCOMPART, POSTOP_INTISCH, POSTOP_RENALISCH, POSTOP_SPINAL_ISCHEMIA, RETX_R_RTOR, DC_STATUS, BRANCH_POST,
+  DEAD, PROC_SURVIVALDAYS,TOTAL_LOS, POSTOP_LOS, AORDEV_TECHSUCC, CONVTOOPEN, LEAKATCOMP_NONE, ICUSTAY, POSTOP_PRBC, POSTOP_VASO, POSTOP_HIGHCREAT,POSTOP_GFR, POSTOP_GFR_CAT,POSTOP_COMPLICATIONS, ACCESS_COMPLICATION, POSTOP_AH, POSTOP_CEREBROSX, POSTOP_RESPIRATORY, POSTOP_DIALYSIS, POSTOP_ARMEMBO, POSTOP_LEGEMBO, POSTOP_LEGCOMPART, POSTOP_INTISCH, POSTOP_RENALISCH, POSTOP_SPINAL_ISCHEMIA, RETX_R_RTOR, DC_STATUS, BRANCH_POST,
   # Volume variables,
   REGIONID,CENTERID,PHYSICIANID,PATIENTID)
 

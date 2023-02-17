@@ -155,7 +155,7 @@ Also account for `OCCLUDED_RENAL`
 ## ------------- function: geeglm  ----------
 
 # geeglm(TOTAL_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent,
-#        data = (TEVAR_PROC),
+#        data = na.omit(TEVAR_PROC),
 #        id = CENTERID,
 #        family = binomial,
 #        corstr = "independence")
@@ -172,21 +172,6 @@ Also account for `OCCLUDED_RENAL`
 
 ## ICUSTAY
 
-```{r fig.cap='Odds ratio plot for ICUSTAY',fig.width=10,fig.height=8}
-
-## ------------- ICUSTAY  ----------
-
-
-```
-
-## POSTOP_LOS
-
-```{r fig.cap='Odds ratio plot for POSTOP_LOS',fig.width=10,fig.height=8}
-
-## ------------- POSTOP_LOS  ----------
-
-
-```
 
 
 ## POSTOP_COMPLICATIONS
