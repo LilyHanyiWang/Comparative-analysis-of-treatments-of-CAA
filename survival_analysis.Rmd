@@ -46,7 +46,7 @@ path_thu = c("TEVAR_PROC.csv")
 # FBVAR = read.csv(path_jenn)
 
 setwd(wd_thu)
-TEVAR_PROC = read.csv(path_thu)
+TEVAR_PROC1 = read.csv(path_thu)
 
 ```
 
@@ -58,14 +58,16 @@ Unadjusted survival curves. Time scale changed from calendar days to calendar ye
 Any changes needed? (e.g, time scale, colors, change to at risk table, add number of censored and/or uncensored events, etc.)
 
 ```{r, fig.width=8, fig.height=6}
+## Omitting patients with negative survival days
+TEVAR_PROC <- subset(TEVAR_PROC1, PROC_SURVIVALDAYS>=0)
+
 ## Survival analysis
 tte <- TEVAR_PROC %>% with(Surv(PROC_SURVIVALDAYS/365, DEAD))
 
 # compute survival curves
 fit <- survfit(tte ~ PRESENTATION, data=TEVAR_PROC)
 
-ggsurvplot(fit,
-           pval = TRUE, 
+ggsurv <- ggsurvplot(fit,
            risk.table = TRUE, 
            linetype = "strata",
            surv.median.line = "hv", 
@@ -73,6 +75,18 @@ ggsurvplot(fit,
            xlab = "Time (Year)",
            legend.labs = c("Asymptomatic", "Symptomatic"),
            break.time.by=1)
+
+ggsurv$plot <- ggsurv$plot +
+ annotate(
+    "text",
+    x = 2.5, y = 0.25,
+    label = "Unadjusted HR = 2.06 (95% CI: 1.65,2.58) 
+    \n Adjusted HR = 1.85 (95% CI: 1.41,2.41)
+    \n p < 0.001",
+    size = 4
+  )
+
+ggsurv
 
 ```
 
