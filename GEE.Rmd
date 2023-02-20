@@ -20,6 +20,9 @@ library(caret)
 library(survminer)
 library(knitr)
 library(kableExtra)
+library(dplyr)
+
+
 
 ```
 
@@ -27,11 +30,11 @@ library(kableExtra)
 ## ------------- working directories for Lily ----------
 #wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
 # path_lily = c("../data/FBVAR.csv")
-
+34*40*4*12
 
 ## ------------- working directories for Jenn ----------
 wd_jenn = '/Users/jenniferci/Desktop/stlp new laptop/Capstone/Comparative-analysis-of-treatments-of-CAA-main'
-path_jenn = c("FBVAR.csv")
+path_jenn = c("TEVAR_PROC.csv")
 
 ## ------------- working directories for Thu ----------
 # wd_thu = '/Users/thuvu/Desktop/Comparative-analysis-of-treatments-of-CAA'
@@ -41,8 +44,15 @@ path_jenn = c("FBVAR.csv")
 #setwd(wd_lily)
 #FBVAR = read.csv(path_lily)
 
-setwd(wd_jenn)
-FBVAR = read.csv(path_jenn)
+#setwd(wd_jenn)
+PROC = read.csv(path_jenn)
+
+#find duplicate participants
+#n_occur <- data.frame(table(PROC$PATIENTID))
+#n_occur[n_occur$Freq > 1,]
+
+#PROC[PROC$PATIENTID %in% n_occur$Var1[n_occur$Freq > 1],]
+
 
 # setwd(wd_thu)
 # FBVAR = read.csv(path_thu)
@@ -54,14 +64,73 @@ FBVAR = read.csv(path_jenn)
 library(geepack)
 library(gtsummary)
 
+PROC = PROC %>%
+  mutate(extent = factor(extent,levels = c("Juxtarenal AAA","Type 1 TAAA","Type 2 TAAA",
+                                           "Type 3 TAAA","Type 4 TAAA","Type 5 TAAA"),
+                         labels = c('Juxtarenal','No','No','No','Juxtarenal','No')))
+```
+```{r}
+#change to bianry variables
+PROC = PROC %>% mutate(
+TOTAL_LOSM = (ifelse(TOTAL_LOS>7, ">7",
+                     ifelse( TOTAL_LOS<=7, "<=7",NA))),
+ICUSTAYM = (ifelse(ICUSTAY>4, ">4",
+                 ifelse(ICUSTAY<=4,"<=4",NA))))
+
+PROC$TOTAL_LOSMb <- as.numeric(PROC$TOTAL_LOSM != "<=7") 
+PROC$ICUSTAYMb <- as.numeric(PROC$ICUSTAYM != "<=4") 
+PROC$POSTOP_INTISCHMb<-as.numeric(PROC$POSTOP_INTISCH != "No") 
+
+PROC[PROC$PATIENTID %in%c('510979', '558643', '259097', '603199' ,'246350', '598705','554182'),]
+
+
+#check the variables
+#PROC%>% select(TOTAL_LOSM,TOTAL_LOS,TOTAL_LOSMb)
+#class(PROC$TOTAL_LOSMb)
+#PROC%>% select(ICUSTAYM,ICUSTAY,ICUSTAYMb)
+#PROC%>% select(POSTOP_INTISCH,POSTOP_INTISCHMb)
+
+
+```
+
+
+
+## TOTAL_LOS
+Length of Stay in days calculated by DISCHARGE_DT - ADMIT_DT
+```{r}
+#table(PROC$extent)
+
+
+#remove missing values
+PROCNM<-subset(PROC, !is.na(extent))
+
+#PROCNM[is.na(PROCNM) | PROCNM=="Inf"] = NA
 # repeated patients, need id, geeglm needs complete data, extent is not complete
-LOS<-geeglm(TOTAL_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES+extent
-            , data=na.omit(FBVAR), id = CENTERID, corstr = "independence") 
-summary(LOS)
-LOS %>%tbl_regression
+#unadjusted
+
+
+LOS1<-geeglm(TOTAL_LOSMb~ PRESENTATION, data=PROCNM, family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
+
+t1<-LOS1 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**TOTAL_LOS Length of Stay in days**")%>%as_flex_table()
+
+
+#adjusted
+LOS2<-geeglm(TOTAL_LOSMb ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
+            , data=PROCNM, family=binomial(link="logit"),id = CENTERID, corstr = "independence") 
+t2<-LOS2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**TOTAL_LOS Length of Stay in days**")%>%as_flex_table()
+
+
+#the difference in mean number of sessions attended comparing treatment to control
+
 
 #adjust<-c('PRESENTATION','AGECAT', 'GENDER', 'PREOP_SMOKING','PRIOR_AORSURG', 'PRIOR_CHF','PATHOLOGY','NUM_TREATED_BRANCHES')
-#FBVAR %>%
+#PROC %>%
 #  tbl_uvregression(
 #    y = TOTAL_LOS, 
 #    x = PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES,
@@ -72,26 +141,109 @@ LOS %>%tbl_regression
 #  as_kable()
 
 
-ICU<-geeglm(ICUSTAY ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES#+extent
-            , data=FBVAR, id = CENTERID, corstr = "independence") 
-ICU %>%tbl_regression
+```
+
+\newpage
+
+
+
+## ICUSTAY
+ICU Stay
+```{r}
+#unadjusted
+ICU1<-geeglm(ICUSTAYMb~ PRESENTATION, data=PROCNM, family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
+
+#summary(LOS2)
+#summary(ICU1)
+
+#ICU1<-geeglm(ICUSTAY ~ PRESENTATION, data=PROCNM,id = CENTERID, corstr = "independence") 
+t1<-ICU1 %>%tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**ICU Stay**")%>%as_flex_table()
+
+#adjusted
+ICU2<-geeglm(ICUSTAYMb ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
+            , family=binomial(link="logit"), data=PROCNM, id = CENTERID, corstr = "independence") 
+t2<- ICU2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**ICU Stay**")%>%as_flex_table()
+```
+
+\newpage
+
+
+
+## POSTOP_PRBC
+Transfusion # Units PRBC
+```{r}
+#unadjusted
+POSTOP_PRBC1<-geeglm(POSTOP_PRBC ~ PRESENTATION, data=PROCNM,id = CENTERID, corstr = "independence") 
+t1<-POSTOP_PRBC1 %>%tbl_regression(tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
+
+
+#adjusted
+POSTOP_PRBC2<-geeglm(POSTOP_PRBC ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, data=PROCNM, id = CENTERID+X, corstr = "independence") 
+t2<- POSTOP_PRBC2 %>%tbl_regression(tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+tbl_merge(tbls = list(t2),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
+
+
+```
+\newpage
+
+
+## POSTOP_HIGHCREAT
+Highest Creatinine (has not updated yet)
+```{r}
+#unadjusted
+POSTOP_HIGHCREAT1<-geeglm(POSTOP_HIGHCREAT ~ PRESENTATION, data=PROCNM,id = CENTERID, corstr = "independence") 
+t1<-POSTOP_HIGHCREAT1 %>%tbl_regression(tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Highest Creatinine**")%>%as_flex_table()
+
+#adjusted
+POSTOP_HIGHCREAT2<-geeglm(POSTOP_HIGHCREAT ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
+                         , data=PROCNM, id = CENTERID, corstr = "independence") 
+t2<- POSTOP_HIGHCREAT2 %>%tbl_regression(tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+tbl_merge(tbls = list(t2),tab_spanner ="**Highest Creatinine**")%>%as_flex_table()
 
 
 
 
-POSTOP_PRBC<-geeglm(POSTOP_PRBC ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES, data=FBVAR, id = CENTERID+X, corstr = "independence") 
-POSTOP_PRBC %>%tbl_regression
-
-POSTOP_HIGHCREAT<-geeglm(POSTOP_HIGHCREAT ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES#+extent
-                         , data=FBVAR, id = CENTERID, corstr = "independence") 
-POSTOP_HIGHCREAT %>%tbl_regression
+```
+\newpage
 
 
-POSTOP_INTISCH<-geeglm(POSTOP_INTISCH ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES#+extent
-                       , data=FBVAR, id = CENTERID, corstr = "independence") 
-POSTOP_INTISCH %>%tbl_regression
+## POSTOP_INTISCH
+Intestinal Ischemia
+```{r}
 
-#model<-geeglm(as.numeric(POSTOP_DIALYSIS)~PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES, family=binomial(link = "logit"), data=FBVAR, id = X, corstr = "independence")
+#unadjusted
+POSTOP_INTISCH1<-geeglm(POSTOP_INTISCHMb ~ PRESENTATION, family=binomial(link="logit"), data=PROCNM,id = CENTERID, corstr = "independence") 
+
+t1<-POSTOP_INTISCH1 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Intestinal Ischemia**")%>%as_flex_table()
+
+
+#adjusted
+POSTOP_INTISCH2<-geeglm(POSTOP_INTISCHMb ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
+                       , data=PROCNM,family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
+t2<- POSTOP_INTISCH2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+tbl_merge(tbls = list(t2),tab_spanner ="**Intestinal Ischemia**")%>%as_flex_table()
+
+
+
+#model<-geeglm(as.numeric(POSTOP_DIALYSIS)~PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PATHOLOGY+NUM_TREATED_BRANCHES, family=binomial(link = "logit"), data=PROC, id = X, corstr = "independence")
 
 
 #model<-geeglm(outcome~predictor+confounder, family=binomial(link = "logit"), 
@@ -120,7 +272,7 @@ library(tidyverse)
 library(caret)
 library(ggcorrplot)
 
-matrix <- FBVAR %>%
+matrix <- PROC %>%
     select_if(is.numeric) %>% subset(., select = -1)%>%
     cor(.,use = "complete")
 
@@ -129,7 +281,7 @@ corrplot(matrix, method="number")
 
 
 #select dataset that column are not numeric
-matrix <- FBVAR %>% select_if(negate(is.numeric))
+matrix <- PROC %>% select_if(negate(is.numeric))
 
   
 # find out the variables
