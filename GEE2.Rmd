@@ -1,0 +1,355 @@
+---
+title: "Logistic Regression Models with GEE for the VQI FBVAR Dataset"
+author: "Jennifer Ci, Thu Vu, Lily Hanyi Wang"
+output: pdf_document
+---
+
+```{r library, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
+knitr::opts_chunk$set(fig.width=20, fig.height=20)
+
+library(tidyverse)
+library(table1)
+library(dplyr)
+library(geepack)
+library(gtsummary)
+library(broom.mixed)
+```
+
+```{r setup wd}
+## ------------- working directories for Lily ----------
+wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
+path_lily = c("../data/TEVAR_PROC.csv")
+
+## ------------- read data ----------
+setwd(wd_lily)
+TEVAR_PROC = read.csv(path_lily)
+```
+
+**Variables to adjust for**:
+
+- cluster on `CENTERID` 
+
+- `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PREOP_DIALYSIS`
+
+- `PATHOLOGY`, `extent`
+
+In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Type 4 TAAA"; "Type 1 TAAA", "Type 2 TAAA", "Type 3 TAAA", with "Type 5 TAAA". Now `extent` is a binary variable, Juxtarenal or not.
+
+**Outcome variables**:
+
+On this report GEE1:
+- `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`
+
+
+On report GEE:
+- `TOTAL_LOS`,`ICUSTAY`, `POSTOP_GFR`, `POSTOP_PRBC`, `POSTOP_INTISCH`
+
+
+```{r}
+## ------------- modify some variables ----------
+TEVAR_PROC = TEVAR_PROC %>%
+  mutate(extent = factor(extent,levels = c("Juxtarenal AAA","Type 1 TAAA","Type 2 TAAA","Type 3 TAAA","Type 4 TAAA","Type 5 TAAA"),labels = c('Juxtarenal','No','No','No','Juxtarenal','No'))) %>%
+  mutate(POSTOP_LOS = case_when(POSTOP_LOS>7 ~ '>7',
+                                POSTOP_LOS<=7 ~ '<=7')) %>%
+  mutate(POSTOP_CEREBROSX = as.numeric(POSTOP_CEREBROSX == "Yes")) %>%
+  mutate(POSTOP_SPINAL_ISCHEMIA = as.numeric(POSTOP_SPINAL_ISCHEMIA == "Yes")) %>%
+  mutate(POSTOP_DIALYSIS = as.numeric(POSTOP_DIALYSIS == "Yes")) %>%
+  mutate(POSTOP_LOS = as.numeric(POSTOP_LOS != "<=7") ) %>%
+  mutate(POSTOP_COMPLICATIONS = as.numeric(POSTOP_COMPLICATIONS == "Yes")) %>%
+  mutate(POSTOP_LEGEMBO = as.numeric(POSTOP_LEGEMBO == "Yes")) %>%
+  mutate(POSTOP_RESPIRATORY = as.numeric(POSTOP_RESPIRATORY == "Yes")) %>%
+  mutate(RETX_R_RTOR = as.numeric(RETX_R_RTOR == "Yes")) %>%
+  mutate(BRANCH_POST = as.numeric(BRANCH_POST == "Yes"))
+
+TEVAR_PROC = subset(TEVAR_PROC, !is.na(extent))
+
+
+## ------------- change class of variables ----------
+names <- c('CENTERID','AGECAT', 'GENDER', 'PREOP_SMOKING', 'PRIOR_AORSURG', 'PRIOR_CHF', 'PREOP_DIALYSIS', 'PATHOLOGY', 'extent')
+TEVAR_PROC[,names] <- lapply(TEVAR_PROC[,names] , factor)
+
+```
+
+
+## POSTOP_CEREBROSX: Post-op Cerebrovascular Stroke: 
+
+Also account for `ARMNECK_ACCESS`
+
+```{r}
+## ------------- Post-op Cerebrovascular Stroke ----------
+## ------------- unadjusted ----------
+POSTOP_CEREBROSX1 = geeglm(POSTOP_CEREBROSX ~ PRESENTATION, 
+                           data=TEVAR_PROC, family=binomial(link="logit"), 
+                           id = CENTERID, corstr = "independence") 
+
+t1 = POSTOP_CEREBROSX1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Post-op Cerebrovascular Stroke**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+POSTOP_CEREBROSX2 = geeglm(POSTOP_CEREBROSX ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
+                      PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent+ARMNECK_ACCESS, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = POSTOP_CEREBROSX2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Cerebrovascular Stroke**")%>%as_flex_table()
+```
+
+
+## POSTOP_SPINAL_ISCHEMIA: Post-op Spinal Ischemia
+
+Also account for `POSTOP_SPINALDRAIN` and `OCCLUDED_CELIAC`
+
+```{r}
+## ------------- Post-op Spinal Ischemia  ----------
+## ------------- unadjusted ----------
+POSTOP_SPINAL_ISCHEMIA1 = geeglm(POSTOP_SPINAL_ISCHEMIA ~ PRESENTATION, 
+                                 data=TEVAR_PROC,family=binomial(link="logit"), 
+                                 id = CENTERID, corstr = "independence") 
+
+t1 = POSTOP_SPINAL_ISCHEMIA1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Post-op Spinal Ischemia**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+POSTOP_SPINAL_ISCHEMIA2 = geeglm(POSTOP_SPINAL_ISCHEMIA ~ PRESENTATION+AGECAT+GENDER+
+                                   PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+
+                                   PREOP_DIALYSIS+PATHOLOGY+extent+
+                                   POSTOP_SPINALDRAIN+OCCLUDED_CELIAC, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = POSTOP_SPINAL_ISCHEMIA2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Spinal Ischemia**")%>%as_flex_table()
+
+
+
+```
+
+## POSTOP_DIALYSIS: Post-op Dialysis
+
+Also account for `OCCLUDED_RENAL`
+
+```{r}
+## ------------ Post-op Dialysis  ----------
+## ------------- unadjusted ----------
+POSTOP_DIALYSIS1 = geeglm(POSTOP_DIALYSIS ~ PRESENTATION, 
+                                 data=TEVAR_PROC,family=binomial(link="logit"), 
+                                 id = CENTERID, corstr = "independence") 
+
+t1 = POSTOP_DIALYSIS1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Post-op Dialysis**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+POSTOP_DIALYSIS2 = geeglm(POSTOP_DIALYSIS ~ PRESENTATION+AGECAT+GENDER+
+                                   PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+
+                                   PREOP_DIALYSIS+PATHOLOGY+extent+
+                                   OCCLUDED_RENAL, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = POSTOP_DIALYSIS2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Dialysis**")%>%as_flex_table()
+
+```
+
+
+
+## POSTOP_LOS: Length of stay in days between surgery date and discharge date
+
+```{r}
+## ------------ Length of stay in days between surgery date and discharge date  ----------
+## ------------- unadjusted ----------
+POSTOP_LOS1 = geeglm(POSTOP_LOS~ PRESENTATION, 
+                     data=TEVAR_PROC, family=binomial(link="logit"), 
+                     id = CENTERID, corstr = "independence") 
+# summary(POSTOP_LOS1)
+
+t1 = POSTOP_LOS1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Length of stay in days between surgery date and discharge date**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+POSTOP_LOS2 = geeglm(POSTOP_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
+                      PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = POSTOP_LOS2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Length of stay in days between surgery date and discharge date**")%>%as_flex_table()
+```
+
+## POSTOP_COMPLICATIONS: Any Complications Post-op
+
+```{r}
+## ------------ Any Complications Post-op  ----------
+## ------------- unadjusted ----------
+POSTOP_COMPLICATIONS1 = geeglm(POSTOP_COMPLICATIONS~ PRESENTATION, 
+                     data=TEVAR_PROC, family=binomial(link="logit"), 
+                     id = CENTERID, corstr = "independence") 
+
+t1 = POSTOP_COMPLICATIONS1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Any Complications Post-op**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+POSTOP_COMPLICATIONS2 = geeglm(POSTOP_COMPLICATIONS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
+                      PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = POSTOP_COMPLICATIONS2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Any Complications Post-op**")%>%as_flex_table()
+```
+
+
+
+## POSTOP_LEGEMBO: Leg Ischemia/Embol
+
+```{r}
+## ------------ Leg Ischemia/Emboli  ----------
+## ------------- unadjusted ----------
+POSTOP_LEGEMBO1 = geeglm(POSTOP_LEGEMBO~ PRESENTATION, 
+                     data=TEVAR_PROC, family=binomial(link="logit"), 
+                     id = CENTERID, corstr = "independence") 
+# summary(POSTOP_LOS1)
+
+t1 = POSTOP_LEGEMBO1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Leg Ischemia/Embol**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+POSTOP_LEGEMBO2 = geeglm(POSTOP_LEGEMBO ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
+                      PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = POSTOP_LEGEMBO2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Leg Ischemia/Embol**")%>%as_flex_table()
+```
+
+## POSTOP_RESPIRATORY: Post-op Respiratory
+
+```{r}
+## ------------ Post-op Respiratory  ----------
+## ------------- unadjusted ----------
+POSTOP_RESPIRATORY1 = geeglm(POSTOP_RESPIRATORY~ PRESENTATION, 
+                     data=TEVAR_PROC, family=binomial(link="logit"), 
+                     id = CENTERID, corstr = "independence") 
+
+t1 = POSTOP_RESPIRATORY1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Post-op Respiratory**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+POSTOP_RESPIRATORY2 = geeglm(POSTOP_RESPIRATORY ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
+                      PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = POSTOP_RESPIRATORY2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Respiratory**")%>%as_flex_table()
+```
+
+## RETX_R_RTOR: Re-intervention
+
+```{r}
+## ------------ Re-intervention  ----------
+## ------------- unadjusted ----------
+RETX_R_RTOR1 = geeglm(RETX_R_RTOR~ PRESENTATION, 
+                     data=TEVAR_PROC, family=binomial(link="logit"), 
+                     id = CENTERID, corstr = "independence") 
+# summary(POSTOP_LOS1)
+
+t1 = RETX_R_RTOR1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Re-intervention**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+RETX_R_RTOR2 = geeglm(RETX_R_RTOR ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
+                      PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = RETX_R_RTOR2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Re-intervention**")%>%as_flex_table()
+```
+
+## BRANCH_POST: Post-treatment Status of All Branches
+
+```{r}
+## ------------ Post-treatment Status of All Branches  ----------
+## ------------- unadjusted ----------
+BRANCH_POST1 = geeglm(BRANCH_POST~ PRESENTATION, 
+                     data=TEVAR_PROC, family=binomial(link="logit"), 
+                     id = CENTERID, corstr = "independence") 
+# summary(POSTOP_LOS1)
+
+t1 = BRANCH_POST1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**Post-treatment Status of All Branches**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+BRANCH_POST2 = geeglm(BRANCH_POST ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
+                      PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, 
+                    family=binomial(link="logit"), data=TEVAR_PROC, 
+                    id = CENTERID, corstr = "independence")
+
+t2 = BRANCH_POST2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**Post-treatment Status of All Branches**")%>%as_flex_table()
+```
+
+\newpage
+
+## Code Appendix
+
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE,include=TRUE}
+```
