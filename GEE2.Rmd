@@ -38,11 +38,13 @@ In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Ty
 
 **Outcome variables**:
 
-On this report GEE1:
+On this report GEE2:
+
 - `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`
 
 
-On report GEE:
+On the other report GEE:
+
 - `TOTAL_LOS`,`ICUSTAY`, `POSTOP_GFR`, `POSTOP_PRBC`, `POSTOP_INTISCH`
 
 
