@@ -30,7 +30,6 @@ library(dplyr)
 ## ------------- working directories for Lily ----------
 #wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
 # path_lily = c("../data/FBVAR.csv")
-34*40*4*12
 
 ## ------------- working directories for Jenn ----------
 wd_jenn = '/Users/jenniferci/Desktop/stlp new laptop/Capstone/Comparative-analysis-of-treatments-of-CAA-main'
@@ -75,13 +74,18 @@ PROC = PROC %>% mutate(
 TOTAL_LOSM = (ifelse(TOTAL_LOS>7, ">7",
                      ifelse( TOTAL_LOS<=7, "<=7",NA))),
 ICUSTAYM = (ifelse(ICUSTAY>4, ">4",
-                 ifelse(ICUSTAY<=4,"<=4",NA))))
+                 ifelse(ICUSTAY<=4,"<=4",NA))),
+GFRCHANGE=(PROC$PREOP_GFR - PROC$POSTOP_GFR)/PROC$PREOP_GFR,
+GFRFIFTY = (ifelse(GFRCHANGE>=0.5, ">=50%",
+                     ifelse( GFRCHANGE<0.5, "<50%",NA))))
 
 PROC$TOTAL_LOSMb <- as.numeric(PROC$TOTAL_LOSM != "<=7") 
 PROC$ICUSTAYMb <- as.numeric(PROC$ICUSTAYM != "<=4") 
 PROC$POSTOP_INTISCHMb<-as.numeric(PROC$POSTOP_INTISCH != "No") 
+PROC$GFRFIFTYMb <- as.numeric(PROC$GFRFIFTY != "<50%") 
+#PROC%>% select(GFRFIFTY,GFRFIFTYMb)
 
-PROC[PROC$PATIENTID %in%c('510979', '558643', '259097', '603199' ,'246350', '598705','554182'),]
+#PROC[PROC$PATIENTID %in%c('510979', '558643', '259097', '603199' ,'246350', '598705','554182'),]
 
 
 #check the variables
@@ -175,9 +179,10 @@ tbl_merge(tbls = list(t2),tab_spanner ="**ICU Stay**")%>%as_flex_table()
 
 
 
+
+```{r eval=FALSE, include=FALSE}
 ## POSTOP_PRBC
-Transfusion # Units PRBC
-```{r}
+#Transfusion # Units PRBC
 #unadjusted
 POSTOP_PRBC1<-geeglm(POSTOP_PRBC ~ PRESENTATION, data=PROCNM,id = CENTERID, corstr = "independence") 
 t1<-POSTOP_PRBC1 %>%tbl_regression(tidy_fun = broom.mixed::tidy)%>%
@@ -198,8 +203,42 @@ tbl_merge(tbls = list(t2),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex
 
 
 ## POSTOP_HIGHCREAT
-Highest Creatinine (has not updated yet)
+Highest Creatinine 
+1 - GFR reduction is >=50%
+0 - GFR reduction is <50%
 ```{r}
+table(PROC$GFRFIFTY)
+
+#unadjusted
+GFR1<-geeglm(GFRFIFTYMb~ PRESENTATION, data=PROCNM, family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
+
+#summary(LOS2)
+#summary(ICU1)
+
+#ICU1<-geeglm(ICUSTAY ~ PRESENTATION, data=PROCNM,id = CENTERID, corstr = "independence") 
+t1<-GFR1 %>%tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**GFR**")%>%as_flex_table()
+
+#adjusted
+GFR2<-geeglm(GFRFIFTYMb ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
+            , family=binomial(link="logit"), data=PROCNM, id = CENTERID, corstr = "independence") 
+t2<- GFR2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**GFR**")%>%as_flex_table()
+
+
+```
+
+
+
+
+
+
+
+```{r eval=FALSE, include=FALSE}
 #unadjusted
 POSTOP_HIGHCREAT1<-geeglm(POSTOP_HIGHCREAT ~ PRESENTATION, data=PROCNM,id = CENTERID, corstr = "independence") 
 t1<-POSTOP_HIGHCREAT1 %>%tbl_regression(tidy_fun = broom.mixed::tidy)%>%
