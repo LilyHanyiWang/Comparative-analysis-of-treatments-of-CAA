@@ -19,9 +19,17 @@ library(broom.mixed)
 wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
 path_lily = c("../data/TEVAR_PROC.csv")
 
+## ------------- working directories for Jenn ----------
+wd_jenn = '/Users/jenniferci/Desktop/stlp new laptop/Capstone/Comparative-analysis-of-treatments-of-CAA-main'
+path_jenn = c("TEVAR_PROC.csv")
+
 ## ------------- read data ----------
 setwd(wd_lily)
 TEVAR_PROC = read.csv(path_lily)
+
+# setwd(wd_jenn)
+# PROC = read.csv(path_jenn)
+
 ```
 
 # Variables to adjust for
@@ -71,15 +79,15 @@ TEVAR_PROC = read.csv(path_lily)
 
 *In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Type 4 TAAA"; "Type 1 TAAA", "Type 2 TAAA", "Type 3 TAAA", with "Type 5 TAAA". Now `extent` is a binary variable, Juxtarenal or not.*
 
+- categorical secondary outcomes: `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`, `TOTAL_LOS`,`ICUSTAY`, `POSTOP_INTISCH`
 
-**logistic regression with Generalized Estimating Equations for categorical variables**
+*logistic regression with Generalized Estimating Equations for categorical secondary outcomes*
 
-`POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`, `TOTAL_LOS`,`ICUSTAY`, `POSTOP_INTISCH`
+- continuous secondary outcomes: `POSTOP_PRBC` 
 
+*linear regression with Generalized Estimating Equations for continuous secondary outcomes*
 
-**linear regression with Generalized Estimating Equations for continuous variables**
-
-`POSTOP_GFR`, `POSTOP_PRBC` 
+`POSTOP_GFR`
 
 
 ```{r}
@@ -131,7 +139,10 @@ TEVAR_PROC[,names] <- lapply(TEVAR_PROC[,names] , factor)
 ## ------------- unadjusted ----------
 LOS1<-geeglm(TOTAL_LOS~ PRESENTATION, data=TEVAR_PROC, family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
 
-t1<-LOS1 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+t1<-LOS1 %>%
+  tbl_regression(exponentiate=TRUE,
+                 tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**TOTAL_LOS Length of Stay in days**")%>%as_flex_table()
@@ -140,7 +151,9 @@ tbl_merge(tbls = list(t1),tab_spanner ="**TOTAL_LOS Length of Stay in days**")%>
 ## ------------- adjusted ----------
 LOS2<-geeglm(TOTAL_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
             , data=TEVAR_PROC, family=binomial(link="logit"),id = CENTERID, corstr = "independence") 
-t2<-LOS2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+t2<-LOS2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**TOTAL_LOS Length of Stay in days**")%>%as_flex_table()
@@ -174,7 +187,8 @@ ICU1<-geeglm(ICUSTAY~ PRESENTATION, data=TEVAR_PROC, family=binomial(link="logit
 #summary(ICU1)
 
 #ICU1<-geeglm(ICUSTAY ~ PRESENTATION, data=PROCNM,id = CENTERID, corstr = "independence") 
-t1<-ICU1 %>%tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+t1<-ICU1 %>%tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                           pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**ICU Stay**")%>%as_flex_table()
@@ -182,7 +196,8 @@ tbl_merge(tbls = list(t1),tab_spanner ="**ICU Stay**")%>%as_flex_table()
 ## ------------- adjusted ----------
 ICU2<-geeglm(ICUSTAY ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
             , family=binomial(link="logit"), data=TEVAR_PROC, id = CENTERID, corstr = "independence") 
-t2<- ICU2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+t2<- ICU2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                            pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**ICU Stay**")%>%as_flex_table()
@@ -195,17 +210,19 @@ tbl_merge(tbls = list(t2),tab_spanner ="**ICU Stay**")%>%as_flex_table()
 ## -------------  Transfusion # Units PRBC ----------
 ## ------------- unadjusted ----------
 POSTOP_PRBC1<-geeglm(POSTOP_PRBC ~ PRESENTATION, data=TEVAR_PROC,id = CENTERID, corstr = "independence") 
-t1<-POSTOP_PRBC1 %>%tbl_regression(tidy_fun = broom.mixed::tidy)%>%
+t1<-POSTOP_PRBC1 %>%tbl_regression(tidy_fun = broom.mixed::tidy,
+                                   pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
 
 
 ## ------------- adjusted ----------
-POSTOP_PRBC2<-geeglm(POSTOP_PRBC ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, data=TEVAR_PROC, id = CENTERID+X, corstr = "independence") 
-t2<- POSTOP_PRBC2 %>%tbl_regression(tidy_fun = broom.mixed::tidy)%>%
-  bold_p(t = 0.05)
-tbl_merge(tbls = list(t2),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
+# POSTOP_PRBC2<-geeglm(POSTOP_PRBC ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, data=TEVAR_PROC, id = CENTERID+X, corstr = "independence") 
+# t2<- POSTOP_PRBC2 %>%tbl_regression(tidy_fun = broom.mixed::tidy,
+#                                     pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+#   bold_p(t = 0.05)
+# tbl_merge(tbls = list(t2),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
 
 
 ```
@@ -218,7 +235,8 @@ tbl_merge(tbls = list(t2),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex
 ## ------------- unadjusted ----------
 POSTOP_INTISCH1<-geeglm(POSTOP_INTISCH ~ PRESENTATION, family=binomial(link="logit"), data=TEVAR_PROC,id = CENTERID, corstr = "independence") 
 
-t1<-POSTOP_INTISCH1 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+t1<-POSTOP_INTISCH1 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                                      pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Intestinal Ischemia**")%>%as_flex_table()
@@ -227,7 +245,8 @@ tbl_merge(tbls = list(t1),tab_spanner ="**Intestinal Ischemia**")%>%as_flex_tabl
 ## ------------- adjusted ----------
 POSTOP_INTISCH2<-geeglm(POSTOP_INTISCH ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
                        , data=TEVAR_PROC,family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
-t2<- POSTOP_INTISCH2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+t2<- POSTOP_INTISCH2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                                       pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 tbl_merge(tbls = list(t2),tab_spanner ="**Intestinal Ischemia**")%>%as_flex_table()
 
@@ -256,7 +275,8 @@ POSTOP_CEREBROSX1 = geeglm(POSTOP_CEREBROSX ~ PRESENTATION,
                            id = CENTERID, corstr = "independence") 
 
 t1 = POSTOP_CEREBROSX1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy, 
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Post-op Cerebrovascular Stroke**")%>%as_flex_table()
@@ -268,7 +288,8 @@ POSTOP_CEREBROSX2 = geeglm(POSTOP_CEREBROSX ~ PRESENTATION+AGECAT+GENDER+PREOP_S
                     id = CENTERID, corstr = "independence")
 
 t2 = POSTOP_CEREBROSX2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Cerebrovascular Stroke**")%>%as_flex_table()
@@ -288,7 +309,8 @@ POSTOP_SPINAL_ISCHEMIA1 = geeglm(POSTOP_SPINAL_ISCHEMIA ~ PRESENTATION,
                                  id = CENTERID, corstr = "independence") 
 
 t1 = POSTOP_SPINAL_ISCHEMIA1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Post-op Spinal Ischemia**")%>%as_flex_table()
@@ -302,7 +324,8 @@ POSTOP_SPINAL_ISCHEMIA2 = geeglm(POSTOP_SPINAL_ISCHEMIA ~ PRESENTATION+AGECAT+GE
                     id = CENTERID, corstr = "independence")
 
 t2 = POSTOP_SPINAL_ISCHEMIA2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Spinal Ischemia**")%>%as_flex_table()
@@ -325,7 +348,8 @@ POSTOP_LOS1 = geeglm(POSTOP_LOS~ PRESENTATION,
 # summary(POSTOP_LOS1)
 
 t1 = POSTOP_LOS1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Length of stay in days between surgery date and discharge date**")%>%as_flex_table()
@@ -337,7 +361,8 @@ POSTOP_LOS2 = geeglm(POSTOP_LOS ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
                     id = CENTERID, corstr = "independence")
 
 t2 = POSTOP_LOS2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Length of stay in days between surgery date and discharge date**")%>%as_flex_table()
@@ -354,7 +379,8 @@ POSTOP_COMPLICATIONS1 = geeglm(POSTOP_COMPLICATIONS~ PRESENTATION,
                      id = CENTERID, corstr = "independence") 
 
 t1 = POSTOP_COMPLICATIONS1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Any Complications Post-op**")%>%as_flex_table()
@@ -366,7 +392,8 @@ POSTOP_COMPLICATIONS2 = geeglm(POSTOP_COMPLICATIONS ~ PRESENTATION+AGECAT+GENDER
                     id = CENTERID, corstr = "independence")
 
 t2 = POSTOP_COMPLICATIONS2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Any Complications Post-op**")%>%as_flex_table()
@@ -387,7 +414,8 @@ RETX_R_RTOR1 = geeglm(RETX_R_RTOR~ PRESENTATION,
 # summary(POSTOP_LOS1)
 
 t1 = RETX_R_RTOR1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Re-intervention**")%>%as_flex_table()
@@ -399,7 +427,8 @@ RETX_R_RTOR2 = geeglm(RETX_R_RTOR ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
                     id = CENTERID, corstr = "independence")
 
 t2 = RETX_R_RTOR2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Re-intervention**")%>%as_flex_table()
@@ -417,7 +446,8 @@ BRANCH_POST1 = geeglm(BRANCH_POST~ PRESENTATION,
 # summary(POSTOP_LOS1)
 
 t1 = BRANCH_POST1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Post-treatment Status of All Branches**")%>%as_flex_table()
@@ -429,7 +459,8 @@ BRANCH_POST2 = geeglm(BRANCH_POST ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+
                     id = CENTERID, corstr = "independence")
 
 t2 = BRANCH_POST2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Post-treatment Status of All Branches**")%>%as_flex_table()
@@ -461,7 +492,8 @@ POSTOP_DIALYSIS1 = geeglm(POSTOP_DIALYSIS ~ PRESENTATION,
                                  id = CENTERID, corstr = "independence") 
 
 t1 = POSTOP_DIALYSIS1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Post-op Dialysis**")%>%as_flex_table()
@@ -475,7 +507,8 @@ POSTOP_DIALYSIS2 = geeglm(POSTOP_DIALYSIS ~ PRESENTATION+AGECAT+GENDER+
                     id = CENTERID, corstr = "independence")
 
 t2 = POSTOP_DIALYSIS2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Dialysis**")%>%as_flex_table()
@@ -495,7 +528,8 @@ POSTOP_LEGEMBO1 = geeglm(POSTOP_LEGEMBO~ PRESENTATION,
 # summary(POSTOP_LOS1)
 
 t1 = POSTOP_LEGEMBO1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Leg Ischemia/Embol**")%>%as_flex_table()
@@ -507,7 +541,8 @@ POSTOP_LEGEMBO2 = geeglm(POSTOP_LEGEMBO ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKI
                     id = CENTERID, corstr = "independence")
 
 t2 = POSTOP_LEGEMBO2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Leg Ischemia/Embol**")%>%as_flex_table()
@@ -527,7 +562,8 @@ POSTOP_RESPIRATORY1 = geeglm(POSTOP_RESPIRATORY~ PRESENTATION,
                      id = CENTERID, corstr = "independence") 
 
 t1 = POSTOP_RESPIRATORY1 %>%
-  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t1),tab_spanner ="**Post-op Respiratory**")%>%as_flex_table()
@@ -539,7 +575,8 @@ POSTOP_RESPIRATORY2 = geeglm(POSTOP_RESPIRATORY ~ PRESENTATION+AGECAT+GENDER+PRE
                     id = CENTERID, corstr = "independence")
 
 t2 = POSTOP_RESPIRATORY2 %>%
-  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Respiratory**")%>%as_flex_table()
