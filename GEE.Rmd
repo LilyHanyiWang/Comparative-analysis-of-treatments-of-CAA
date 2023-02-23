@@ -70,17 +70,24 @@ TEVAR_PROC = read.csv(path_lily)
 
 *We used a correlation matrix to report the correlations between variables statistically. We also discussed with our collaborator on the choice of variables to adjust for. Here we did not report the correlation matrix.*
 
+In the unadjusted models, we only study the differences in the secondary outcomes:
+
+- comparing `PRESENTATION`
+
+In the adjusted models, we also: 
+
 - cluster on `CENTERID` 
 
 - adjust for `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PREOP_DIALYSIS`
 
 - adjust for `PATHOLOGY`, `extent`
 
-*In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Type 4 TAAA"; "Type 1 TAAA", "Type 2 TAAA", "Type 3 TAAA", with "Type 5 TAAA". Now `extent` is a binary variable, Juxtarenal or not.*
+- secondary outcomes: `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`, `TOTAL_LOS`,`ICUSTAY`, `POSTOP_INTISCH`, `POSTOP_GFR`
 
-- categorical secondary outcomes: `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`, `TOTAL_LOS`,`ICUSTAY`, `POSTOP_INTISCH`, `POSTOP_GFR`
+We use logistic regression with Generalized Estimating Equations to study the secondary outcomes, which are all categorical variables.
 
-We use logistic regression with Generalized Estimating Equations to study categorical secondary outcomes
+*To fit the models, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Type 4 TAAA"; "Type 1 TAAA", "Type 2 TAAA", "Type 3 TAAA", with "Type 5 TAAA". Now `extent` is a binary variable, Juxtarenal or not.*
+
 
 
 ```{r}
@@ -234,6 +241,8 @@ Use `POSTOP_HIGHCREAT`, Highest Creatinine, to generate corresponding GFR values
 ```
 
 `GFRFIFTY`: 1 - GFR reduction is >=50%; 0 - GFR reduction is <50%
+
+Also adjust for `PREOP_GFR_CAT` and `TREATED_RENALS`
 
 ```{r}
 ## ------------- GFR reduction ----------
