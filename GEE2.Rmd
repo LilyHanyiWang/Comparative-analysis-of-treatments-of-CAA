@@ -70,7 +70,6 @@ TEVAR_PROC = read.csv(path_lily)
 
 *We used a correlation matrix to report the correlations between variables statistically. We also discussed with our collaborator on the choice of variables to adjust for. Here we did not report the correlation matrix.*
 
-
 - cluster on `CENTERID` 
 
 - adjust for `AGECAT`, `GENDER`, `PREOP_SMOKING`, `PRIOR_AORSURG`, `PRIOR_CHF`, `PREOP_DIALYSIS`
@@ -79,21 +78,22 @@ TEVAR_PROC = read.csv(path_lily)
 
 *In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Type 4 TAAA"; "Type 1 TAAA", "Type 2 TAAA", "Type 3 TAAA", with "Type 5 TAAA". Now `extent` is a binary variable, Juxtarenal or not.*
 
-- categorical secondary outcomes: `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`, `TOTAL_LOS`,`ICUSTAY`, `POSTOP_INTISCH`
+- categorical secondary outcomes: `POSTOP_CEREBROSX`, `POSTOP_SPINAL_ISCHEMIA`, `POSTOP_DIALYSIS`, `POSTOP_LOS`,  `POSTOP_COMPLICATIONS`, `POSTOP_LEGEMBO`, `POSTOP_RESPIRATORY`, `RETX_R_RTOR`, `BRANCH_POST`, `TOTAL_LOS`,`ICUSTAY`, `POSTOP_INTISCH`, `POSTOP_GFR`, `POSTOP_HIGHCREAT`
 
-*logistic regression with Generalized Estimating Equations for categorical secondary outcomes*
-
-- continuous secondary outcomes: `POSTOP_PRBC` 
-
-*linear regression with Generalized Estimating Equations for continuous secondary outcomes*
-
-`POSTOP_GFR`
+We use logistic regression with Generalized Estimating Equations to study categorical secondary outcomes
 
 
 ```{r}
 ## ------------- modify dataset ----------
 TEVAR_PROC = TEVAR_PROC %>%
   mutate(extent = factor(extent,levels = c("Juxtarenal AAA","Type 1 TAAA","Type 2 TAAA","Type 3 TAAA","Type 4 TAAA","Type 5 TAAA"),labels = c('Juxtarenal','No','No','No','Juxtarenal','No'))) %>%
+  
+  mutate(GFRCHANGE = (PREOP_GFR-POSTOP_GFR)/PREOP_GFR) %>%
+  mutate(GFRFIFTY = (ifelse(GFRCHANGE<0.5, "<50%",
+                            ifelse(GFRCHANGE>=0.5, ">=50%",NA)))) %>%
+  mutate(TREATED_RENALS = (ifelse(NUM_TREATED_RENALS<1, "No",
+                                  ifelse(NUM_TREATED_RENALS>=1, "Yes",NA)))) %>%
+  
   
   mutate(TOTAL_LOS = case_when(TOTAL_LOS>7 ~ '>7',
                                TOTAL_LOS<=7 ~ '<=7')) %>%
@@ -114,7 +114,8 @@ TEVAR_PROC = TEVAR_PROC %>%
   mutate(POSTOP_LEGEMBO = as.numeric(POSTOP_LEGEMBO == "Yes")) %>%
   mutate(POSTOP_RESPIRATORY = as.numeric(POSTOP_RESPIRATORY == "Yes")) %>%
   mutate(RETX_R_RTOR = as.numeric(RETX_R_RTOR == "Yes")) %>%
-  mutate(BRANCH_POST = as.numeric(BRANCH_POST == "Yes"))
+  mutate(BRANCH_POST = as.numeric(BRANCH_POST == "Yes")) %>%
+  mutate(GFRFIFTY = as.numeric(GFRFIFTY != "<50%") )
 
 # remove missing values
 TEVAR_PROC = subset(TEVAR_PROC, !is.na(extent))
@@ -127,6 +128,7 @@ TEVAR_PROC[,names] <- lapply(TEVAR_PROC[,names] , factor)
 ```
 
 
+\newpage
 ## TOTAL_LOS: Length of stay in days between admission date and discharge date
 
 ```{r}
@@ -204,28 +206,61 @@ tbl_merge(tbls = list(t2),tab_spanner ="**ICU Stay**")%>%as_flex_table()
 ```
 
 \newpage
-## POSTOP_PRBC: Transfusion # Units PRBC
+## Creatinine and GFR
+
+`POSTOP_HIGHCREAT`: Highest Creatinine 
 
 ```{r}
-## -------------  Transfusion # Units PRBC ----------
+## ------------- Creatinine ----------
 ## ------------- unadjusted ----------
-POSTOP_PRBC1<-geeglm(POSTOP_PRBC ~ PRESENTATION, data=TEVAR_PROC,id = CENTERID, corstr = "independence") 
-t1<-POSTOP_PRBC1 %>%tbl_regression(tidy_fun = broom.mixed::tidy,
-                                   pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+POSTOP_HIGHCREAT1<-geeglm(POSTOP_HIGHCREAT ~ PRESENTATION, data=TEVAR_PROC,id = CENTERID, corstr = "independence") 
+
+t1<-POSTOP_HIGHCREAT1 %>%
+  tbl_regression(tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
   bold_p(t = 0.05)
 
-tbl_merge(tbls = list(t1),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
-
+tbl_merge(tbls = list(t1),tab_spanner ="**Highest Creatinine**")%>%as_flex_table()
 
 ## ------------- adjusted ----------
-# POSTOP_PRBC2<-geeglm(POSTOP_PRBC ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, data=TEVAR_PROC, id = CENTERID+X, corstr = "independence") 
-# t2<- POSTOP_PRBC2 %>%tbl_regression(tidy_fun = broom.mixed::tidy,
-#                                     pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
-#   bold_p(t = 0.05)
-# tbl_merge(tbls = list(t2),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
-
+POSTOP_HIGHCREAT2<-geeglm(POSTOP_HIGHCREAT ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
+                         , data=TEVAR_PROC, id = CENTERID, corstr = "independence") 
+t2<- POSTOP_HIGHCREAT2 %>%
+  tbl_regression(tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+  bold_p(t = 0.05)
+tbl_merge(tbls = list(t2),tab_spanner ="**Highest Creatinine**")%>%as_flex_table()
 
 ```
+
+`GFRFIFTY`: 1 - GFR reduction is >=50%; 0 - GFR reduction is <50%
+
+```{r}
+## ------------- GFR reduction ----------
+#table(PROC$GFRFIFTY)
+
+## ------------- unadjusted ----------
+GFR1<-geeglm(GFRFIFTY~ PRESENTATION, data=TEVAR_PROC, family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
+
+t1<-GFR1 %>%
+  tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy,
+                           pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**GFR reduction**")%>%as_flex_table()
+
+## ------------- adjusted ----------
+GFR2<-geeglm(GFRFIFTY ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_GFR_CAT+TREATED_RENALS+PATHOLOGY+extent
+            , family=binomial(link="logit"), data=TEVAR_PROC, id = CENTERID, corstr = "independence") 
+t2<- GFR2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**GFR reduction**")%>%as_flex_table()
+
+```
+
 
 \newpage
 ## POSTOP_INTISCH: Post-op Intestinal Ischemia
@@ -466,6 +501,8 @@ t2 = BRANCH_POST2 %>%
 tbl_merge(tbls = list(t2),tab_spanner ="**Post-treatment Status of All Branches**")%>%as_flex_table()
 ```
 
+\newpage
+
 For the following variables, we need to merge age group "<50" and "50-59" so that there's no 0 patients on one level.
 
 ```{r}
@@ -476,8 +513,6 @@ TEVAR_PROC = TEVAR_PROC %>%
 
 ```
 
-
-\newpage
 ## POSTOP_DIALYSIS: Post-op Dialysis
 
 Also account for `OCCLUDED_RENAL`
@@ -582,6 +617,34 @@ t2 = POSTOP_RESPIRATORY2 %>%
 tbl_merge(tbls = list(t2),tab_spanner ="**Post-op Respiratory**")%>%as_flex_table()
 ```
 
+## POSTOP_PRBC: Transfusion # Units PRBC
+
+We don't include this variable in the final report.
+
+```{r}
+# ## -------------  Transfusion # Units PRBC ----------
+# ## ------------- unadjusted ----------
+# POSTOP_PRBC1<-geeglm(POSTOP_PRBC ~ PRESENTATION, data=TEVAR_PROC,id = CENTERID, corstr = "independence") 
+# t1<-POSTOP_PRBC1 %>%tbl_regression(tidy_fun = broom.mixed::tidy,
+#                                    pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+#   bold_p(t = 0.05)
+# 
+# tbl_merge(tbls = list(t1),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
+# 
+# 
+# ## ------------- adjusted ----------
+# POSTOP_PRBC2<-geeglm(POSTOP_PRBC ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, data=TEVAR_PROC, id = CENTERID+X, corstr = "independence")
+# 
+# POSTOP_PRBC2<-geeglm(POSTOP_PRBC ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent, data=PROCNM, id = CENTERID+X, corstr = "independence") 
+# 
+# 
+# t2<- POSTOP_PRBC2 %>%tbl_regression(tidy_fun = broom.mixed::tidy,
+#                                     pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+#   bold_p(t = 0.05)
+# tbl_merge(tbls = list(t2),tab_spanner ="**Transfusion # Units PRBC**")%>%as_flex_table()
+# 
+
+```
 
 \newpage
 
