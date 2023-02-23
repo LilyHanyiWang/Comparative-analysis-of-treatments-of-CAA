@@ -68,6 +68,8 @@ PROC = PROC %>%
                                            "Type 3 TAAA","Type 4 TAAA","Type 5 TAAA"),
                          labels = c('Juxtarenal','No','No','No','Juxtarenal','No')))
 ```
+
+
 ```{r}
 #change to bianry variables
 PROC = PROC %>% mutate(
@@ -76,8 +78,10 @@ TOTAL_LOSM = (ifelse(TOTAL_LOS>7, ">7",
 ICUSTAYM = (ifelse(ICUSTAY>4, ">4",
                  ifelse(ICUSTAY<=4,"<=4",NA))),
 GFRCHANGE=(PROC$PREOP_GFR - PROC$POSTOP_GFR)/PROC$PREOP_GFR,
-GFRFIFTY = (ifelse(GFRCHANGE>=0.5, ">=50%",
-                     ifelse( GFRCHANGE<0.5, "<50%",NA))))
+GFRFIFTY = (ifelse(GFRCHANGE<0.5, "<50%",
+                     ifelse(GFRCHANGE>=0.5, ">=50%",NA))),
+TREATED_RENALS = (ifelse(NUM_TREATED_RENALS<1, "No",
+                     ifelse(NUM_TREATED_RENALS>=1, "Yes",NA))))
 
 PROC$TOTAL_LOSMb <- as.numeric(PROC$TOTAL_LOSM != "<=7") 
 PROC$ICUSTAYMb <- as.numeric(PROC$ICUSTAYM != "<=4") 
@@ -93,8 +97,8 @@ PROC$GFRFIFTYMb <- as.numeric(PROC$GFRFIFTY != "<50%")
 #class(PROC$TOTAL_LOSMb)
 #PROC%>% select(ICUSTAYM,ICUSTAY,ICUSTAYMb)
 #PROC%>% select(POSTOP_INTISCH,POSTOP_INTISCHMb)
-
-
+#check the GFR
+#a<-PROC%>% filter(is.na(PREOP_GFR_CAT))%>% select(PREOP_CREAT,POSTOP_HIGHCREAT, PREOP_GFR,PREOP_GFR_CAT,POSTOP_GFR,POSTOP_GFR_CAT)
 ```
 
 
@@ -104,9 +108,9 @@ Length of Stay in days calculated by DISCHARGE_DT - ADMIT_DT
 ```{r}
 #table(PROC$extent)
 
-
 #remove missing values
 PROCNM<-subset(PROC, !is.na(extent))
+#PROCNM<-subset(PROCNM, is.na(PREOP_GFR_CAT))
 
 #PROCNM[is.na(PROCNM) | PROCNM=="Inf"] = NA
 # repeated patients, need id, geeglm needs complete data, extent is not complete
@@ -207,7 +211,7 @@ Highest Creatinine
 1 - GFR reduction is >=50%
 0 - GFR reduction is <50%
 ```{r}
-table(PROC$GFRFIFTY)
+#table(PROC$GFRFIFTY)
 
 #unadjusted
 GFR1<-geeglm(GFRFIFTYMb~ PRESENTATION, data=PROCNM, family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
@@ -221,15 +225,17 @@ t1<-GFR1 %>%tbl_regression(exponentiate=TRUE, tidy_fun = broom.mixed::tidy)%>%
 
 tbl_merge(tbls = list(t1),tab_spanner ="**GFR**")%>%as_flex_table()
 
+
+#table(PROCNM$PREOP_GFR_CAT)
+
+
 #adjusted
-GFR2<-geeglm(GFRFIFTYMb ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
+GFR2<-geeglm(GFRFIFTYMb ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_GFR_CAT+TREATED_RENALS+PATHOLOGY+extent
             , family=binomial(link="logit"), data=PROCNM, id = CENTERID, corstr = "independence") 
 t2<- GFR2 %>%tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy)%>%
   bold_p(t = 0.05)
 
 tbl_merge(tbls = list(t2),tab_spanner ="**GFR**")%>%as_flex_table()
-
-
 ```
 
 
