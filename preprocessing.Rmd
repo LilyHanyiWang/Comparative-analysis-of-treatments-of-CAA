@@ -184,16 +184,16 @@ TEVAR_PROC = TEVAR_PROC %>%
   mutate(POSTOP_GFR = 142*(POSTOP_min^GFR_alpha)*(POSTOP_max^(-1.2))*(0.9938^AGE)*(isfemale))
 
 TEVAR_PROC = TEVAR_PROC %>% 
-  mutate(PREOP_GFR_CAT = case_when(PREOP_GFR >= 90 ~ 1,
-                                   PREOP_GFR > 60 & PREOP_GFR < 89 ~ 2,
-                                   PREOP_GFR > 30 & PREOP_GFR < 59 ~ 3,
+  mutate(PREOP_GFR_CAT = case_when(PREOP_GFR > 89 ~ 1,
+                                   PREOP_GFR > 59 & PREOP_GFR < 89 ~ 2,
+                                   PREOP_GFR > 29 & PREOP_GFR < 59 ~ 3,
                                    PREOP_GFR > 15 & PREOP_GFR < 29 ~ 4,
-                                   PREOP_GFR <15 ~ 5)) %>%
-  mutate(POSTOP_GFR_CAT = case_when(POSTOP_GFR >= 90 ~ 1,
-                                    POSTOP_GFR > 60 & POSTOP_GFR < 89 ~ 2,
-                                    POSTOP_GFR > 30 & POSTOP_GFR < 59 ~ 3,
+                                   PREOP_GFR < 15 ~ 5)) %>%
+  mutate(POSTOP_GFR_CAT = case_when(POSTOP_GFR > 89 ~ 1,
+                                    POSTOP_GFR > 59 & POSTOP_GFR < 89 ~ 2,
+                                    POSTOP_GFR > 29 & POSTOP_GFR < 59 ~ 3,
                                     POSTOP_GFR > 15 & POSTOP_GFR < 29 ~ 4,
-                                    POSTOP_GFR <15 ~ 5))
+                                    POSTOP_GFR < 15 ~ 5))
   
 TEVAR_PROC = TEVAR_PROC %>% 
   mutate(PREOP_GFR_CAT = factor(PREOP_GFR_CAT,levels = c(1,2,3,4,5),
