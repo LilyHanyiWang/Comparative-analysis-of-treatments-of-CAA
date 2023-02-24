@@ -37,6 +37,7 @@ path_lily = c("../data/FBVAR.csv")
 ## ------------- working directories for Thu ----------
 wd_thu = '/Users/thuvu/Desktop/Comparative-analysis-of-treatments-of-CAA'
 path_thu = c("TEVAR_PROC.csv")
+path_thu1 = c("LT 2.csv")
 
 ## ------------- read data ----------
 # setwd(wd_lily)
@@ -47,6 +48,7 @@ path_thu = c("TEVAR_PROC.csv")
 
 setwd(wd_thu)
 TEVAR_PROC1 = read.csv(path_thu)
+LTF = read.csv(path_thu1)
 
 ```
 
@@ -102,6 +104,8 @@ Variables to adjust for:
 
 In the model, we merge groups for the  `extent`: merge "Juxtarenal AAA" with "Type 4 TAAA"; "Type 1 TAAA", "Type 2 TAAA", "Type 3 TAAA", with "Type 5 TAAA". Now `extent` is a binary variable, Juxtarenal or not. 
 
+## OUTCOME: Survival
+
 ```{r, fig.pos="H"}
 TEVAR_PROC = TEVAR_PROC %>%
   mutate(extent = factor(extent,levels = c("Juxtarenal AAA","Type 1 TAAA","Type 2 TAAA",
@@ -122,6 +126,42 @@ t2 <- mod.cox2 %>% tbl_regression(exponentiate = TRUE)
 
 t1 %>% as_flex_table()
 t2 %>% as_flex_table()
+```
+
+# Long-term Follow-up Re-intervention (time-to-event outcome)
+
+```{r, fig.width=8, fig.height=6}
+t <- as.data.frame(table(TEVAR_PROC1$PRIMPROCID))
+LTF_merge <- LTF[LTF$PRIMPROCID %in% t$Var1,]
+
+LTF_merge$total_reint[is.na(LTF_merge$total_reint)] <- 0
+LTF_merge$retx_bin <- ifelse(LTF_merge$total_reint>=1, 1, 0)
+LTF_merge$time <- ifelse(LTF_merge$retx_bin==1, 
+                         LTF_merge$first_reint_time, LTF_merge$new_surv)
+
+LTF_merge <- subset(LTF_merge, time>=0)
+
+LTF_comb <- merge(LTF_merge, TEVAR_PROC1, by = "PRIMPROCID")
+
+tte1 <- LTF_comb %>% with(Surv(time/365, retx_bin))
+
+# compute survival curves
+fit1 <- survfit(tte1~PRESENTATION, data=LTF_comb)
+
+ggsurvplot(
+  fit1,
+  pval = TRUE,
+  risk.table = TRUE,
+  linetype = "strata",
+  surv.median.line = "hv",
+  ggtheme = theme_bw(),
+  legend.labs = c("Asymptomatic", "Symptomatic"),
+  xlab = "Time (Year)",
+  break.time.by = 1,
+  title = "Time to First Re-intervention",
+  caption = "HR = Hazard Ratio, CI = Confidence Interval"
+)
+
 ```
 
 \newpage
