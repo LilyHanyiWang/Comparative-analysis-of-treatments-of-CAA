@@ -134,6 +134,25 @@ TEVAR_PROC[,names] <- lapply(TEVAR_PROC[,names] , factor)
 
 ```
 
+\newpage
+## AT_PO: the average time between presentation and operation 
+
+```{r}
+## ------------- the average time between presentation and operation ----------
+
+# descriptive analysis
+AT_PO = TEVAR_PROC$AT_PO[!is.na(TEVAR_PROC$AT_PO)]
+length(AT_PO)
+table(AT_PO)
+length(AT_PO [ AT_PO <8 ]) / length(AT_PO)
+
+AT_PO = AT_PO [ AT_PO <8 ]
+hist(AT_PO)
+plot(density(AT_PO))
+
+# GEE
+```
+
 
 \newpage
 ## TOTAL_LOS: Length of stay in days between admission date and discharge date
