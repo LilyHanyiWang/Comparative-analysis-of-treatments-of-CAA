@@ -14,22 +14,22 @@ library(gtsummary)
 library(broom.mixed)
 ```
 
+
 ```{r setup wd}
 ## ------------- working directories for Lily ----------
 wd_lily = '/Users/hanyiwang/Desktop/Comparative-analysis-of-treatments-of-CAA'
 path_lily = c("../data/TEVAR_PROC.csv")
 
 ## ------------- working directories for Jenn ----------
-wd_jenn = '/Users/jenniferci/Desktop/stlp new laptop/Capstone/Comparative-analysis-of-treatments-of-CAA-main'
-path_jenn = c("TEVAR_PROC.csv")
+wd_jenn = '/Users/jennifer/Desktop/comp'
+path_jenn = c("data/TEVAR_PROC.csv")
 
 ## ------------- read data ----------
-setwd(wd_lily)
-TEVAR_PROC = read.csv(path_lily)
+#setwd(wd_lily)
+#TEVAR_PROC = read.csv(path_lily)
 
-# setwd(wd_jenn)
-# PROC = read.csv(path_jenn)
-
+setwd(wd_jenn)
+TEVAR_PROC = read.csv(path_jenn)
 ```
 
 # Variables to adjust for
@@ -104,12 +104,15 @@ TEVAR_PROC = TEVAR_PROC %>%
   
   mutate(TOTAL_LOS = case_when(TOTAL_LOS>7 ~ '>7',
                                TOTAL_LOS<=7 ~ '<=7')) %>%
+  mutate(AT_PO = case_when(AT_PO>=2 ~ '>=2',
+                               AT_PO<2 ~ '<2')) %>%
   mutate(ICUSTAY = case_when(ICUSTAY>4 ~ '>4',
                              ICUSTAY<=4 ~ '<=4')) %>%
   mutate(POSTOP_LOS = case_when(POSTOP_LOS>7 ~ '>7',
                                 POSTOP_LOS<=7 ~ '<=7')) %>%
 
   mutate(TOTAL_LOS = as.numeric(TOTAL_LOS != "<=7") ) %>%
+  mutate(AT_PO = as.numeric(AT_PO != "<2") ) %>%
   mutate(ICUSTAY = as.numeric(ICUSTAY != "<=4") ) %>%
   mutate(POSTOP_LOS = as.numeric(POSTOP_LOS != "<=7") ) %>%
   
@@ -141,17 +144,45 @@ TEVAR_PROC[,names] <- lapply(TEVAR_PROC[,names] , factor)
 ## ------------- the average time between presentation and operation ----------
 
 # descriptive analysis
-AT_PO = TEVAR_PROC$AT_PO[!is.na(TEVAR_PROC$AT_PO)]
-length(AT_PO)
-table(AT_PO)
-length(AT_PO [ AT_PO <8 ]) / length(AT_PO)
+#AT_PO = TEVAR_PROC$AT_PO[!is.na(TEVAR_PROC$AT_PO)]
+#length(AT_PO)
+#table(AT_PO)
+#length(AT_PO [ AT_PO <8 ]) / length(AT_PO)
 
-AT_PO = AT_PO [ AT_PO <8 ]
-hist(AT_PO)
-plot(density(AT_PO))
-
-# GEE
+#AT_PO = AT_PO [ AT_PO <8 ]
+#hist(AT_PO)
+#plot(density(AT_PO))
 ```
+
+```{r}
+# GEE
+## ------------- unadjusted ----------
+AT1<-geeglm(AT_PO~ PRESENTATION, data=TEVAR_PROC, family=binomial(link="logit"), id = CENTERID, corstr = "independence") 
+
+t1<-AT1 %>%
+  tbl_regression(exponentiate=TRUE,
+                 tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t1),tab_spanner ="**AT_PO Time between presentation and operation**")%>%as_flex_table()
+
+
+## ------------- adjusted ----------
+AT2<-geeglm(AT_PO ~ PRESENTATION+AGECAT+GENDER+PREOP_SMOKING+PRIOR_AORSURG+PRIOR_CHF+PREOP_DIALYSIS+PATHOLOGY+extent
+            , data=TEVAR_PROC, family=binomial(link="logit"),id = CENTERID, corstr = "independence") 
+t2<-AT2 %>%
+  tbl_regression(exponentiate=TRUE,tidy_fun = broom.mixed::tidy,
+                 pvalue_fun = function(x) style_pvalue(x, digits = 2))%>%
+  bold_p(t = 0.05)
+
+tbl_merge(tbls = list(t2),tab_spanner ="**AT_PO Time between presentation and operation**")%>%as_flex_table()
+
+
+
+```
+
+
 
 
 \newpage
@@ -677,6 +708,11 @@ We don't include this variable in the final report.
 \newpage
 
 ## Code Appendix
+
+
+
+
+
 
 ```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE,include=TRUE}
 ```
