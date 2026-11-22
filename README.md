@@ -16,7 +16,7 @@ Ghosh, R., Dansey, K. D., **Wang, H.**, Ci, X., Vu, T., O'Donnell, T. F. X., Wan
 
 **Question.** Among patients undergoing fenestrated/branched endovascular repair (FBEVAR) of a complex aortic aneurysm, is a symptomatic (non-ruptured) presentation associated with worse survival and perioperative outcomes than an asymptomatic presentation?
 
-**Data.** Procedure-level (PROC) and long-term follow-up (LTF) files from a vascular surgery registry of TEVAR / complex EVAR procedures. The registry data are not included in this repository.
+**Data.** Procedure-level (PROC) and long-term follow-up (LTF) files from the Society for Vascular Surgery Vascular Quality Initiative (SVS VQI) TEVAR & Complex EVAR registry. The VQI data are not included in this repository.
 
 Analytic cohort (`preprocessing.Rmd`):
 
